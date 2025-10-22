@@ -1,0 +1,236 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  RENTER
+  OWNER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum DepositStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FORFEITED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum CategoryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?  @unique
+  firstName String
+  lastName  String
+  password  String
+  role      UserRole @default(RENTER)
+  
+  // Location
+  city      String?
+  latitude  Float?
+  longitude Float?
+  
+  // Verification
+  isVerified     Boolean @default(false)
+  verificationId String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  ownedItems     Item[]
+  bookings       Booking[]
+  sentMessages   Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
+  reviews        Review[]
+  categoryRequests CategoryRequest[]
+  
+  @@map("users")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String
+  subcategory String?
+  
+  // Pricing
+  dailyRate   Int      // in agorot
+  weeklyRate  Int?     // in agorot
+  monthlyRate Int?     // in agorot
+  
+  // Location
+  city        String
+  latitude    Float
+  longitude   Float
+  address     String?
+  
+  // Availability
+  isAvailable Boolean  @default(true)
+  minRentalDays Int    @default(1)
+  maxRentalDays Int?
+  
+  // Insurance
+  hasBasicInsurance    Boolean @default(false)
+  hasPremiumInsurance  Boolean @default(false)
+  insuranceDailyRate   Int?    // in agorot
+  
+  // Images
+  images      String[]
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isApproved  Boolean  @default(false)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  bookings    Booking[]
+  reviews     Review[]
+  
+  @@map("items")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  
+  // Dates
+  startDate     DateTime
+  endDate       DateTime
+  totalDays     Int
+  
+  // Pricing
+  dailyRate     Int           // in agorot
+  totalAmount   Int           // in agorot
+  depositAmount Int           // in agorot
+  insuranceAmount Int?        // in agorot
+  
+  // Status
+  status        BookingStatus @default(PENDING)
+  depositStatus DepositStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(MANUAL)
+  
+  // Insurance
+  hasInsurance      Boolean @default(false)
+  insuranceType     String? // basic/premium
+  
+  // Notes
+  renterNotes       String?
+  ownerNotes        String?
+  pickupNotes       String?
+  returnNotes       String?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  item              Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId            String
+  renter            User     @relation(fields: [renterId], references: [id], onDelete: Cascade)
+  renterId          String
+  messages          Message[]
+  
+  @@map("bookings")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  // Relations
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId  String
+  receiver  User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId String
+  
+  @@map("messages")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  // Relations
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  reviewer  User     @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId String
+  
+  @@map("reviews")
+}
+
+model Verification {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  type        String   // phone, email, id
+  code        String
+  isVerified  Boolean  @default(false)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  
+  @@map("verifications")
+}
+
+model CategoryRequest {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  status      CategoryStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+  
+  @@map("category_requests")
+}

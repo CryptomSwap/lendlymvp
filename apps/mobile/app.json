@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Lendly",
+    "slug": "lendly-mvp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0EA5A5"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lendly.mvp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0EA5A5"
+      },
+      "package": "com.lendly.mvp"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "lendly",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "האפליקציה זקוקה לגישה למיקום כדי למצוא ציוד קרוב אליך"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "האפליקציה זקוקה לגישה למצלמה כדי לצלם תמונות של הציוד"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
