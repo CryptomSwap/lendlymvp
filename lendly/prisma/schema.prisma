@@ -1,0 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum BookingStatus {
+  DRAFT
+  RESERVED
+  CONFIRMED
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum ChecklistPhase {
+  PICKUP
+  RETURN
+}
+
+enum DisputeType {
+  DAMAGE
+  PAYMENT
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  phone      String?
+  avatar     String?
+  bio        String?
+  role       UserRole @default(user)
+  trustScore Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  listingsAsOwner Listings[] @relation("ListingOwner")
+  bookingsAsRenter Booking[] @relation("BookingRenter")
+  messagesSent     Message[] @relation("MessageFrom")
+  reviewsGiven     Review[]  @relation("ReviewFrom")
+  reviewsReceived  Review[]  @relation("ReviewTo")
+  disputesOpened   Dispute[] @relation("DisputeOpener")
+  accounts         Account[]
+  sessions         Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId      String
+  expires     DateTime
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Listings {
+  id            String   @id @default(cuid())
+  ownerId       String
+  title         String
+  description   String
+  category      String
+  dailyRate     Float
+  depositOverride Float?
+  minDays       Int      @default(1)
+  photos        String   // JSON array of photo URLs
+  locationText  String
+  lat           Float?
+  lng           Float?
+  instantBook   Boolean  @default(false)
+  ratingAvg     Float    @default(0)
+  ratingCount   Int      @default(0)
+  availability  String? // JSON string for availability calendar
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner   User     @relation("ListingOwner", fields: [ownerId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
+
+  @@index([ownerId])
+  @@index([category])
+  @@index([lat, lng])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  listingId     String
+  renterId      String
+  startDate     DateTime
+  endDate       DateTime
+  status        BookingStatus @default(DRAFT)
+  depositRequired Float
+  insuranceAdded Boolean      @default(false)
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  listing Listings @relation(fields: [listingId], references: [id])
+  renter  User     @relation("BookingRenter", fields: [renterId], references: [id])
+  messages Message[]
+  disputes Dispute[]
+  checklists Checklist[]
+
+  @@index([listingId])
+  @@index([renterId])
+  @@index([status])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  bookingId String
+  fromUserId String
+  body      String
+  createdAt DateTime @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  fromUser User    @relation("MessageFrom", fields: [fromUserId], references: [id])
+
+  @@index([bookingId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  listingId String
+  fromUserId String
+  toUserId   String
+  rating    Int      // 1-5
+  text      String?
+  createdAt DateTime @default(now())
+
+  listing  Listings @relation(fields: [listingId], references: [id])
+  fromUser User     @relation("ReviewFrom", fields: [fromUserId], references: [id])
+  toUser   User     @relation("ReviewTo", fields: [toUserId], references: [id])
+
+  @@index([listingId])
+  @@index([toUserId])
+}
+
+model Dispute {
+  id             String        @id @default(cuid())
+  bookingId      String
+  openedById     String
+  type           DisputeType
+  description    String
+  evidencePhotos String        // JSON array of photo URLs
+  status         DisputeStatus @default(OPEN)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  openedBy User    @relation("DisputeOpener", fields: [openedById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model Checklist {
+  id           String         @id @default(cuid())
+  bookingId    String
+  phase        ChecklistPhase
+  photos       String         // JSON array of photo URLs
+  serial       String?
+  conditionNotes String?
+  signedAt     DateTime?
+  createdAt    DateTime       @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+}
+
+model AdminSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON string for complex values
+  updatedAt DateTime @updatedAt
+  updatedBy String?  // User ID who last updated
+
+  @@index([key])
+}
