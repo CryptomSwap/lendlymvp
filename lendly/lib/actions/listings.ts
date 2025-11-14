@@ -164,6 +164,34 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
   }
 }
 
+export async function getAllListings() {
+  try {
+    const listings = await prisma.listings.findMany({
+      take: 20,
+      include: {
+        owner: {
+          select: {
+            name: true,
+            avatar: true,
+            trustScore: true,
+          },
+        },
+      },
+      orderBy: [
+        { ratingAvg: "desc" },
+        { ratingCount: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    // Ensure we return a plain array that can be serialized
+    return JSON.parse(JSON.stringify(listings));
+  } catch (error) {
+    console.error("Error fetching all listings:", error);
+    return [];
+  }
+}
+
 export async function getListingById(id: string) {
   try {
     const listing = await prisma.listings.findUnique({

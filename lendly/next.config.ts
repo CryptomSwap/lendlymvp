@@ -6,6 +6,14 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone", // Enable standalone output for Docker
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
+  },
 };
 
 export default withNextIntl(nextConfig);

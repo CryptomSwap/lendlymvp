@@ -10,9 +10,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  user
-  admin
+enum Role {
+  USER
+  ADMIN
 }
 
 enum BookingStatus {
@@ -38,24 +38,34 @@ enum DisputeType {
 enum DisputeStatus {
   OPEN
   IN_REVIEW
-  RESOLVED
-  CLOSED
+  RESOLVED_OWNER
+  RESOLVED_RENTER
+  REFUND_PARTIAL
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
 }
 
 model User {
   id         String   @id @default(cuid())
-  name       String
+  name       String?
   email      String   @unique
   phone      String?
-  avatar     String?
+  image      String?
+  avatar     String? // Keep for backward compatibility
   bio        String?
-  role       UserRole @default(user)
-  trustScore Int      @default(0)
+  roles      String   @default("[\"USER\"]") // JSON array of Role enum values
+  trustScore Float    @default(0)
+  isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
-  listingsAsOwner Listings[] @relation("ListingOwner")
+  listingsAsOwner  Listing[] @relation("ListingOwner")
   bookingsAsRenter Booking[] @relation("BookingRenter")
   messagesSent     Message[] @relation("MessageFrom")
   reviewsGiven     Review[]  @relation("ReviewFrom")
@@ -87,121 +97,145 @@ model Account {
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
-  userId      String
-  expires     DateTime
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Listings {
-  id            String   @id @default(cuid())
-  ownerId       String
-  title         String
-  description   String
-  category      String
-  dailyRate     Float
-  depositOverride Float?
-  minDays       Int      @default(1)
-  photos        String   // JSON array of photo URLs
-  locationText  String
-  lat           Float?
-  lng           Float?
-  instantBook   Boolean  @default(false)
-  ratingAvg     Float    @default(0)
-  ratingCount   Int      @default(0)
-  availability  String? // JSON string for availability calendar
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Listing {
+  id           String        @id @default(cuid())
+  ownerId      String
+  title        String
+  description  String?
+  category     String
+  pricePerDay  Int
+  deposit      Int?
+  status       ListingStatus @default(PENDING)
+  photos       String // JSON array of photo URLs
+  locationText String?
+  lat          Float?
+  lng          Float?
+  instantBook  Boolean       @default(false)
+  ratingAvg    Float         @default(0)
+  ratingCount  Int           @default(0)
+  availability String? // JSON string for availability calendar
+  trustWeight  Float         @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  owner   User     @relation("ListingOwner", fields: [ownerId], references: [id])
+  owner    User      @relation("ListingOwner", fields: [ownerId], references: [id])
   bookings Booking[]
   reviews  Review[]
 
   @@index([ownerId])
   @@index([category])
   @@index([lat, lng])
+  @@index([status])
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  listingId     String
-  renterId      String
-  startDate     DateTime
-  endDate       DateTime
-  status        BookingStatus @default(DRAFT)
-  depositRequired Float
-  insuranceAdded Boolean      @default(false)
-  expiresAt     DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id        String        @id @default(cuid())
+  listingId String
+  renterId  String
+  startDate DateTime
+  endDate   DateTime
+  status    BookingStatus @default(RESERVED)
+  deposit   Int
+  insurance Boolean       @default(false)
+  expiresAt DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  listing Listings @relation(fields: [listingId], references: [id])
-  renter  User     @relation("BookingRenter", fields: [renterId], references: [id])
-  messages Message[]
-  disputes Dispute[]
+  listing    Listing     @relation(fields: [listingId], references: [id])
+  renter     User        @relation("BookingRenter", fields: [renterId], references: [id])
+  messages   Message[]
+  disputes   Dispute[]
   checklists Checklist[]
+  thread     Thread?
 
   @@index([listingId])
   @@index([renterId])
   @@index([status])
 }
 
-model Message {
-  id        String   @id @default(cuid())
-  bookingId String
-  fromUserId String
-  body      String
-  createdAt DateTime @default(now())
+model Thread {
+  id            String   @id @default(cuid())
+  bookingId     String   @unique
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
+  booking  Booking   @relation(fields: [bookingId], references: [id])
+  messages Message[]
+
+  @@index([bookingId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  threadId   String?
+  bookingId  String
+  fromUserId String
+  body       String
+  images     String? // JSON array of image URLs
+  createdAt  DateTime @default(now())
+
+  thread   Thread? @relation(fields: [threadId], references: [id])
   booking  Booking @relation(fields: [bookingId], references: [id])
   fromUser User    @relation("MessageFrom", fields: [fromUserId], references: [id])
 
   @@index([bookingId])
+  @@index([threadId])
+  @@index([createdAt])
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  listingId String
+  id         String   @id @default(cuid())
+  listingId  String
   fromUserId String
   toUserId   String
-  rating    Int      // 1-5
-  text      String?
-  createdAt DateTime @default(now())
+  rating     Int // 1-5
+  text       String?
+  createdAt  DateTime @default(now())
 
-  listing  Listings @relation(fields: [listingId], references: [id])
-  fromUser User     @relation("ReviewFrom", fields: [fromUserId], references: [id])
-  toUser   User     @relation("ReviewTo", fields: [toUserId], references: [id])
+  listing  Listing @relation(fields: [listingId], references: [id])
+  fromUser User    @relation("ReviewFrom", fields: [fromUserId], references: [id])
+  toUser   User    @relation("ReviewTo", fields: [toUserId], references: [id])
 
   @@index([listingId])
   @@index([toUserId])
 }
 
 model Dispute {
-  id             String        @id @default(cuid())
-  bookingId      String
-  openedById     String
-  type           DisputeType
-  description    String
-  evidencePhotos String        // JSON array of photo URLs
-  status         DisputeStatus @default(OPEN)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id          String        @id @default(cuid())
+  bookingId   String
+  openedById  String?
+  type        DisputeType?
+  description String?
+  status      DisputeStatus @default(OPEN)
+  claim       Int
+  evidence    String // JSON object with evidence data
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   booking  Booking @relation(fields: [bookingId], references: [id])
-  openedBy User    @relation("DisputeOpener", fields: [openedById], references: [id])
+  openedBy User?   @relation("DisputeOpener", fields: [openedById], references: [id])
 
   @@index([bookingId])
   @@index([status])
 }
 
 model Checklist {
-  id           String         @id @default(cuid())
-  bookingId    String
-  phase        ChecklistPhase
-  photos       String         // JSON array of photo URLs
-  serial       String?
+  id             String         @id @default(cuid())
+  bookingId      String
+  phase          ChecklistPhase
+  photos         String // JSON array of photo URLs
+  serial         String?
   conditionNotes String?
-  signedAt     DateTime?
-  createdAt    DateTime       @default(now())
+  signedAt       DateTime?
+  createdAt      DateTime       @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])
 
@@ -211,9 +245,35 @@ model Checklist {
 model AdminSettings {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String   // JSON string for complex values
+  value     String // JSON string for complex values
   updatedAt DateTime @updatedAt
-  updatedBy String?  // User ID who last updated
+  updatedBy String? // User ID who last updated
 
   @@index([key])
+}
+
+model Rules {
+  id                    String   @id @default("1")
+  baseDepositPct        Float    @default(0.1)
+  minDeposit            Int      @default(100)
+  maxDeposit            Int      @default(10000)
+  insuranceDaily        Int      @default(50)
+  incidentMultiplier    Float    @default(1.5)
+  ownerTrustMultiplier  Float    @default(1.0)
+  renterTrustMultiplier Float    @default(1.0)
+  updatedAt             DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  data      String? // JSON string for additional data
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entity, entityId])
+  @@index([createdAt])
 }

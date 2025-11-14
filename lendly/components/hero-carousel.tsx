@@ -25,8 +25,26 @@ export function HeroCarousel() {
   const currentItemData = items[currentItem];
 
   return (
-    <div className="relative flex items-center justify-center py-12 px-4 overflow-hidden">
-      {/* Spinning background element */}
+    <div className="relative flex items-center justify-center py-3 px-4 overflow-hidden">
+      {/* Stronger radial gradient behind hero area only */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        {/* Light mode gradient */}
+        <div 
+          className="absolute w-80 h-80 rounded-full blur-3xl opacity-70 dark:opacity-0"
+          style={{
+            background: 'radial-gradient(circle, rgba(14, 165, 165, 0.15) 0%, rgba(14, 165, 165, 0.08) 40%, rgba(14, 165, 165, 0.03) 70%, transparent 100%)'
+          }}
+        />
+        {/* Dark mode gradient - more visible */}
+        <div 
+          className="absolute w-80 h-80 rounded-full blur-3xl opacity-0 dark:opacity-80"
+          style={{
+            background: 'radial-gradient(circle, rgba(20, 184, 166, 0.25) 0%, rgba(20, 184, 166, 0.12) 40%, rgba(20, 184, 166, 0.05) 70%, transparent 100%)'
+          }}
+        />
+      </div>
+
+      {/* Spinning background element - increased by 20-25% */}
       <motion.div
         className="absolute inset-0 flex items-center justify-center z-0"
         initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
@@ -51,22 +69,22 @@ export function HeroCarousel() {
           }
         }}
       >
-        <div className="absolute inset-0 blur-xl opacity-30">
+        <div className="absolute inset-0 blur-xl opacity-25">
           <img
             src="/spin.png"
             alt="Spin decoration"
-            className="h-full w-full max-w-64 max-h-64 object-contain"
+            className="w-[110px] h-[110px] object-contain"
           />
         </div>
         <img
           src="/spin.png"
           alt="Spin decoration"
-          className="h-full w-full max-w-64 max-h-64 object-contain"
+          className="w-[110px] h-[110px] object-contain"
         />
       </motion.div>
 
-      {/* Two person symbols */}
-      <div className="absolute left-1/4 top-1/2 -translate-y-1/2 z-20">
+      {/* Two person symbols - increased size */}
+      <div className="absolute left-[32%] top-1/2 -translate-y-1/2 z-20">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -75,11 +93,11 @@ export function HeroCarousel() {
           <img
             src="/person.png"
             alt="Person"
-            className="h-12 w-12 object-contain"
+            className="h-10 w-10 object-contain"
           />
         </motion.div>
       </div>
-      <div className="absolute right-1/4 top-1/2 -translate-y-1/2 z-20">
+      <div className="absolute right-[32%] top-1/2 -translate-y-1/2 z-20">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -88,12 +106,12 @@ export function HeroCarousel() {
           <img
             src="/person.png"
             alt="Person"
-            className="h-12 w-12 object-contain"
+            className="h-10 w-10 object-contain"
           />
         </motion.div>
       </div>
 
-      {/* Rotating item symbol in center */}
+      {/* Rotating item symbol in center - increased size */}
       <div className="relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
@@ -107,24 +125,21 @@ export function HeroCarousel() {
             }}
             className="relative"
           >
-            <div className="absolute inset-0 blur-xl opacity-30">
+            <div className="absolute inset-0 blur-xl opacity-25">
               <img
                 src={currentItemData.image}
                 alt={currentItemData.label}
-                className="h-20 w-20 object-contain"
+                className="h-[65px] w-[65px] object-contain"
               />
             </div>
             <img
               src={currentItemData.image}
               alt={currentItemData.label}
-              className="relative h-20 w-20 object-contain"
+              className="relative h-[65px] w-[65px] object-contain"
             />
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {/* Subtle background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
     </div>
   );
 }

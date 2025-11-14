@@ -1,6 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
+import { hasRole } from "@/lib/auth/roles";
 
 const prisma = new PrismaClient();
 
@@ -8,10 +9,10 @@ export async function checkAdminRole(userId: string): Promise<boolean> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true },
+      select: { roles: true },
     });
 
-    return user?.role === "admin";
+    return hasRole(user, Role.ADMIN);
   } catch (error) {
     console.error("Error checking admin role:", error);
     return false;

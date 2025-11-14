@@ -17,10 +17,12 @@ export async function sendMagicLink(email: string): Promise<{ success: boolean; 
 
     // Create user if doesn't exist
     if (!user) {
+      const { serializeRoles } = await import("./auth/roles");
       user = await prisma.user.create({
         data: {
           email,
           name: email.split("@")[0], // Default name from email
+          roles: serializeRoles(["USER"]), // Default role
         },
       });
     }
@@ -64,10 +66,12 @@ export async function verifyMagicLink(token: string) {
     });
 
     if (!user) {
+      const { serializeRoles } = await import("./auth/roles");
       user = await prisma.user.create({
         data: {
           email: tokenData.email,
           name: tokenData.email.split("@")[0],
+          roles: serializeRoles(["USER"]), // Default role
         },
       });
     }

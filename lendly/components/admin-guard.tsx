@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/routing";
-import { checkAdminRole } from "@/lib/utils/auth";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { parseRoles } from "@/lib/auth/roles";
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -15,23 +14,23 @@ export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
 
   useEffect(() => {
-    // In a real app, get userId from session
-    const userId = "stub-user-id"; // TODO: Get from session
-    
-    // For MVP, allow access if user exists
-    // In production, check actual admin role
-    checkAdminRole(userId)
-      .then((isAdmin) => {
-        if (!isAdmin) {
-          toast.error("Unauthorized: Admin access required");
+    // Check if user is admin via API
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        const roles = data.user?.roles 
+          ? (typeof data.user.roles === "string" ? parseRoles(data.user.roles) : data.user.roles)
+          : [];
+        if (roles.includes("ADMIN")) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
           router.push("/");
         }
-        setIsAuthorized(isAdmin);
       })
       .catch(() => {
-        toast.error("Unauthorized: Admin access required");
-        router.push("/");
         setIsAuthorized(false);
+        router.push("/");
       });
   }, [router]);
 

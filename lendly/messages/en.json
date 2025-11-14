@@ -2,6 +2,8 @@
   "common": {
     "home": "Home",
     "search": "Search",
+    "previous": "Previous",
+    "next": "Next",
     "searchPlaceholder": "Drill...",
     "messages": "Messages",
     "bookings": "Bookings",
@@ -16,6 +18,9 @@
     "tools": "Tools",
     "djGear": "DJ Gear",
     "camping": "Camping",
+    "electronics": "Electronics",
+    "sports": "Sports",
+    "outdoor": "Outdoor",
     "language": "Language",
     "menu": "Menu",
     "theme": "Theme",
@@ -31,13 +36,28 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "rentalOptionsAroundYou": "Rental Options Around You"
+    "rentalOptionsAroundYou": "Rental Options Around You",
+    "popularRentals": "Popular Rentals in Your Area",
+    "nearbyListings": "Nearby Listings",
+    "seeAll": "See All",
+    "withinRadius": "Within 5 km radius",
+    "insurance": "Insurance",
+    "inDemand": "In Demand",
+    "instantBook": "Instant",
+    "details": "Details",
+    "noNearbyListings": "No rentals found in your area",
+    "viewAllListings": "View All Listings",
+    "retry": "Retry",
+    "km": "km"
   },
   "auth": {
     "signIn": "Sign In",
+    "signUp": "Sign Up",
     "signOut": "Sign Out",
     "email": "Email",
+    "emailPlaceholder": "you@example.com",
     "sendMagicLink": "Send Magic Link",
+    "sending": "Sending...",
     "magicLinkSent": "Magic link sent! (Dev mode)",
     "clickToSignIn": "Click here to sign in",
     "verifying": "Verifying...",
@@ -46,7 +66,28 @@
     "signedInSuccessfully": "You've been signed in successfully",
     "invalidLink": "The magic link is invalid or missing",
     "linkExpired": "The magic link is invalid or has expired",
-    "pleaseSignIn": "Please sign in to continue"
+    "pleaseSignIn": "Please sign in to continue",
+    "subtitle": "We'll send you a one-time login link to your email.",
+    "invalidEmail": "Invalid email address",
+    "emailRequired": "Please enter an email address",
+    "linkSentTitle": "Link Sent!",
+    "linkSentMessage": "Check your email inbox. The link is valid for 15 minutes.",
+    "resendLink": "Resend",
+    "resendAvailableIn": "Resend available in {seconds} seconds",
+    "openEmailApp": "Open Email App",
+    "networkError": "Network error. Please try again.",
+    "serverError": "Server error. Please try again later.",
+    "rateLimited": "Too many requests sent. Try again in {seconds} seconds.",
+    "unusualDomain": "Please double-check your email address",
+    "termsAndPrivacy": "By clicking, you agree to our {terms} and {privacy}.",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "continueAsGuest": "Continue as Guest",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithApple": "Sign in with Apple",
+    "checkEmailHint": "Please double-check your email address"
   },
   "profile": {
     "myProfile": "My Profile",
@@ -135,6 +176,93 @@
   },
   "admin": {
     "adminDashboard": "Admin Dashboard",
+    "nav": {
+      "title": "Admin Navigation",
+      "overview": "Overview",
+      "listings": "Listings",
+      "disputes": "Disputes",
+      "users": "Users",
+      "rules": "Rules",
+      "metrics": "Metrics"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "description": "Monitor platform activity and key metrics",
+      "activeListings": "Active Listings",
+      "pending": "pending",
+      "openDisputes": "Open Disputes",
+      "total": "total",
+      "gmv": "GMV",
+      "totalRevenue": "Total revenue",
+      "conversion": "Conversion Rate",
+      "completionRate": "Completion rate",
+      "bookingsChart": "Bookings per Week",
+      "bookingsPerWeek": "Weekly booking trends",
+      "approvalsChart": "Approvals vs Rejections",
+      "approvalsVsRejections": "Listing moderation activity",
+      "chartPlaceholder": "Chart visualization (Recharts integration pending)",
+      "noData": "No data available"
+    },
+    "listings": {
+      "title": "Listings Management",
+      "description": "Approve, reject, or pause listings",
+      "filters": "Filters",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "category": "Category",
+      "categoryPlaceholder": "Filter by category",
+      "ownerEmail": "Owner Email",
+      "emailPlaceholder": "Filter by owner email",
+      "selected": "selected",
+      "bulkApprove": "Bulk Approve",
+      "bulkReject": "Bulk Reject",
+      "bulkPause": "Bulk Pause",
+      "allListings": "All Listings",
+      "total": "Total",
+      "owner": "Owner",
+      "price": "Price",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "disputes": {
+      "title": "Disputes Management",
+      "description": "Review and resolve booking disputes"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage users, verification, and trust scores",
+      "allUsers": "All Users",
+      "total": "Total",
+      "trustScore": "Trust Score",
+      "verified": "Verified",
+      "incidents": "Incidents",
+      "actions": "Actions"
+    },
+    "rules": {
+      "title": "Platform Rules",
+      "description": "Configure deposit and insurance rules",
+      "settings": "Rules Settings",
+      "settingsDescription": "Configure platform-wide rules and thresholds",
+      "depositCalculator": "Deposit Calculator",
+      "calculatorDescription": "Preview deposit calculations with different inputs"
+    },
+    "metrics": {
+      "title": "Metrics Dashboard",
+      "description": "View platform metrics and analytics",
+      "dateRange": "Date Range",
+      "newUsers": "New Users",
+      "bookings": "Bookings",
+      "completed": "completed",
+      "completionRate": "Completion Rate",
+      "disputesRate": "Disputes Rate",
+      "totalDisputes": "total disputes",
+      "avgTrustScore": "Avg Trust Score",
+      "newUsersChart": "New Users Over Time",
+      "usersOverTime": "User growth trends",
+      "bookingsChart": "Bookings Over Time",
+      "bookingsOverTime": "Booking activity trends",
+      "chartPlaceholder": "Chart visualization (Recharts integration pending)"
+    },
     "metrics": "Metrics",
     "listings": "Listings",
     "disputes": "Disputes",
@@ -174,5 +302,138 @@
     "generic": "Something went wrong. Please try again.",
     "unauthorized": "Unauthorized: Admin access required",
     "notFound": "Not found"
+  },
+  "menu": {
+    "navigation": "Navigation",
+    "hiSignIn": "Hi! Sign in",
+    "signInPrompt": "Sign in to access all features",
+    "viewProfile": "View profile",
+    "createAccount": "Create account",
+    "myRentals": "My Rentals",
+    "listYourGear": "List Your Gear",
+    "saved": "Saved",
+    "scanId": "Scan ID",
+    "verifyAccount": "Verify Account",
+    "help": "Help Center",
+    "reportIssue": "Report Issue",
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "system": "System",
+    "currency": "Currency",
+    "distanceUnits": "Distance Units",
+    "kilometers": "Kilometers",
+    "miles": "Miles",
+    "privacySecurity": "Privacy & Security",
+    "idVerification": "ID Verification",
+    "startVerification": "Start verification",
+    "twoFactorAuth": "Two-Factor Auth",
+    "blockedUsers": "Blocked Users",
+    "about": "About",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "insuranceTerms": "Insurance Terms",
+    "appVersion": "App Version",
+    "verified": "Verified"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "tabs": {
+      "renter": "Renter",
+      "owner": "Owner",
+      "messages": "Messages",
+      "wallet": "Wallet",
+      "settings": "Settings"
+    },
+    "renter": {
+      "sections": {
+        "upcoming": "Upcoming",
+        "active": "Active",
+        "history": "History"
+      },
+      "status": {
+        "reserved": "Reserved",
+        "confirmed": "Confirmed",
+        "completed": "Completed",
+        "disputed": "Disputed",
+        "cancelled": "Cancelled"
+      },
+      "actions": {
+        "chat": "Chat",
+        "details": "Details",
+        "cancel": "Cancel"
+      },
+      "empty": {
+        "upcoming": "No upcoming bookings",
+        "active": "No active bookings",
+        "history": "No booking history"
+      }
+    },
+    "owner": {
+      "myListings": "My Listings",
+      "addListing": "+ Add Listing",
+      "nextBooking": "Next booking",
+      "bookingRequests": "Booking Requests",
+      "actions": {
+        "pause": "Pause",
+        "resume": "Resume",
+        "edit": "Edit",
+        "share": "Share",
+        "approve": "Approve",
+        "decline": "Decline",
+        "reply": "Reply"
+      },
+      "empty": {
+        "listings": "You haven't created any listings yet",
+        "requests": "No pending booking requests"
+      },
+      "from": "From"
+    },
+    "messages": {
+      "empty": "No messages yet"
+    },
+    "wallet": {
+      "balance": "Balance",
+      "balanceDescription": "Your current wallet balance",
+      "transactions": "Transactions",
+      "exportCSV": "Export CSV",
+      "empty": "No transactions yet"
+    },
+    "settings": {
+      "save": "Save",
+      "saved": "Settings saved successfully",
+      "profile": {
+        "title": "Profile",
+        "description": "Manage your profile information",
+        "name": "Name",
+        "phone": "Phone",
+        "uploadPhoto": "Upload Photo"
+      },
+      "verification": {
+        "title": "Verification",
+        "description": "Verify your identity",
+        "verified": "Verified",
+        "verifiedDescription": "Your identity has been verified",
+        "notVerified": "Not Verified",
+        "notVerifiedTitle": "Verify your account",
+        "notVerifiedDescription": "Upload your ID to verify your account",
+        "uploadID": "Upload ID"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Manage your notification preferences",
+        "email": "Email Notifications",
+        "emailDescription": "Receive notifications via email",
+        "push": "Push Notifications",
+        "pushDescription": "Receive push notifications",
+        "bookingUpdates": "Booking Updates",
+        "bookingUpdatesDescription": "Get notified about booking status changes",
+        "messages": "Messages",
+        "messagesDescription": "Get notified about new messages"
+      },
+      "language": {
+        "title": "Language",
+        "description": "Choose your preferred language"
+      }
+    }
   }
 }

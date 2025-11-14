@@ -2,6 +2,8 @@
   "common": {
     "home": "בית",
     "search": "חיפוש",
+    "previous": "הקודם",
+    "next": "הבא",
     "searchPlaceholder": "מקדחה...",
     "messages": "הודעות",
     "bookings": "הזמנות",
@@ -16,6 +18,9 @@
     "tools": "כלים",
     "djGear": "ציוד DJ",
     "camping": "קמפינג",
+    "electronics": "אלקטרוניקה",
+    "sports": "ספורט",
+    "outdoor": "חוץ",
     "language": "שפה",
     "menu": "תפריט",
     "theme": "ערכת נושא",
@@ -31,13 +36,28 @@
     "loading": "טוען...",
     "error": "שגיאה",
     "success": "הצלחה",
-    "rentalOptionsAroundYou": "אפשרויות השכרה סביבך"
+    "rentalOptionsAroundYou": "אפשרויות השכרה סביבך",
+    "popularRentals": "השכרות פופולריות באזור שלך",
+    "nearbyListings": "רשימות בקרבת מקום",
+    "seeAll": "הצג הכל",
+    "withinRadius": "ברדיוס 5 ק״מ",
+    "insurance": "ביטוח",
+    "inDemand": "מבוקש",
+    "instantBook": "מיידי",
+    "details": "פרטים",
+    "noNearbyListings": "לא נמצאו השכרות בסביבה שלך",
+    "viewAllListings": "עיין בכל ההשכרות",
+    "retry": "נסה שוב",
+    "km": "ק״מ"
   },
   "auth": {
-    "signIn": "התחבר",
+    "signIn": "התחבר/י",
+    "signUp": "הירשם/י",
     "signOut": "התנתק",
     "email": "אימייל",
+    "emailPlaceholder": "you@example.com",
     "sendMagicLink": "שלח קישור קסם",
+    "sending": "שולח...",
     "magicLinkSent": "קישור קסם נשלח! (מצב פיתוח)",
     "clickToSignIn": "לחץ כאן כדי להתחבר",
     "verifying": "מאמת...",
@@ -46,7 +66,28 @@
     "signedInSuccessfully": "התחברת בהצלחה",
     "invalidLink": "קישור הקסם לא תקין או חסר",
     "linkExpired": "קישור הקסם לא תקין או שפג תוקפו",
-    "pleaseSignIn": "אנא התחבר כדי להמשיך"
+    "pleaseSignIn": "אנא התחבר כדי להמשיך",
+    "subtitle": "נשלח לך קישור התחברות חד-פעמי למייל.",
+    "invalidEmail": "כתובת אימייל לא תקינה",
+    "emailRequired": "נא להזין כתובת אימייל",
+    "linkSentTitle": "קישור נשלח!",
+    "linkSentMessage": "בדוק את תיבת המייל שלך. הקישור תקף ל-15 דקות.",
+    "resendLink": "שלח שוב",
+    "resendAvailableIn": "שלח שוב בעוד {seconds} שניות",
+    "openEmailApp": "פתח את אפליקציית המייל",
+    "networkError": "שגיאת רשת. אנא נסה שוב.",
+    "serverError": "שגיאת שרת. אנא נסה שוב מאוחר יותר.",
+    "rateLimited": "נשלחו יותר מדי בקשות. נסה שוב בעוד {seconds} שניות.",
+    "unusualDomain": "בדוק שסימנת את המייל נכון",
+    "termsAndPrivacy": "בלחיצה אתה מאשר את {terms} ו-{privacy}.",
+    "termsOfService": "תנאי השימוש",
+    "privacyPolicy": "מדיניות הפרטיות",
+    "needHelp": "צריך עזרה?",
+    "contactUs": "צור קשר",
+    "continueAsGuest": "המשך כאורח",
+    "signInWithGoogle": "התחברות עם Google",
+    "signInWithApple": "התחברות עם Apple",
+    "checkEmailHint": "בדוק שסימנת את המייל נכון"
   },
   "profile": {
     "myProfile": "הפרופיל שלי",
@@ -135,6 +176,93 @@
   },
   "admin": {
     "adminDashboard": "לוח בקרה למנהל",
+    "nav": {
+      "title": "ניווט מנהל",
+      "overview": "סקירה",
+      "listings": "מודעות",
+      "disputes": "מחלוקות",
+      "users": "משתמשים",
+      "rules": "חוקים",
+      "metrics": "מדדים"
+    },
+    "overview": {
+      "title": "סקירת מנהל",
+      "description": "עקוב אחר פעילות הפלטפורמה ומדדים מרכזיים",
+      "activeListings": "מודעות פעילות",
+      "pending": "ממתינות",
+      "openDisputes": "מחלוקות פתוחות",
+      "total": "סה\"כ",
+      "gmv": "GMV",
+      "totalRevenue": "הכנסה כוללת",
+      "conversion": "שיעור המרה",
+      "completionRate": "שיעור השלמה",
+      "bookingsChart": "הזמנות לשבוע",
+      "bookingsPerWeek": "מגמות הזמנות שבועיות",
+      "approvalsChart": "אישורים לעומת דחיות",
+      "approvalsVsRejections": "פעילות אכיפת מודעות",
+      "chartPlaceholder": "הדמיית גרף (אינטגרציה של Recharts ממתינה)",
+      "noData": "אין נתונים זמינים"
+    },
+    "listings": {
+      "title": "ניהול מודעות",
+      "description": "אשר, דחה או השהה מודעות",
+      "filters": "מסננים",
+      "status": "סטטוס",
+      "allStatuses": "כל הסטטוסים",
+      "category": "קטגוריה",
+      "categoryPlaceholder": "סנן לפי קטגוריה",
+      "ownerEmail": "אימייל בעלים",
+      "emailPlaceholder": "סנן לפי אימייל בעלים",
+      "selected": "נבחרו",
+      "bulkApprove": "אישור מרובה",
+      "bulkReject": "דחייה מרובה",
+      "bulkPause": "השהיה מרובה",
+      "allListings": "כל המודעות",
+      "total": "סה\"כ",
+      "owner": "בעלים",
+      "price": "מחיר",
+      "createdAt": "נוצר ב",
+      "actions": "פעולות"
+    },
+    "disputes": {
+      "title": "ניהול מחלוקות",
+      "description": "סקור ופתור מחלוקות הזמנות"
+    },
+    "users": {
+      "title": "ניהול משתמשים",
+      "description": "נהל משתמשים, אימות וציון אמון",
+      "allUsers": "כל המשתמשים",
+      "total": "סה\"כ",
+      "trustScore": "ציון אמון",
+      "verified": "מאומת",
+      "incidents": "תקריות",
+      "actions": "פעולות"
+    },
+    "rules": {
+      "title": "חוקי הפלטפורמה",
+      "description": "הגדר חוקי פיקדון וביטוח",
+      "settings": "הגדרות חוקים",
+      "settingsDescription": "הגדר חוקים וספים כלליים לפלטפורמה",
+      "depositCalculator": "מחשבון פיקדון",
+      "calculatorDescription": "תצוגה מקדימה של חישובי פיקדון עם קלטים שונים"
+    },
+    "metrics": {
+      "title": "לוח מדדים",
+      "description": "צפה במדדי הפלטפורמה ואנליטיקה",
+      "dateRange": "טווח תאריכים",
+      "newUsers": "משתמשים חדשים",
+      "bookings": "הזמנות",
+      "completed": "הושלמו",
+      "completionRate": "שיעור השלמה",
+      "disputesRate": "שיעור מחלוקות",
+      "totalDisputes": "סה\"כ מחלוקות",
+      "avgTrustScore": "ציון אמון ממוצע",
+      "newUsersChart": "משתמשים חדשים לאורך זמן",
+      "usersOverTime": "מגמות צמיחת משתמשים",
+      "bookingsChart": "הזמנות לאורך זמן",
+      "bookingsOverTime": "מגמות פעילות הזמנות",
+      "chartPlaceholder": "הדמיית גרף (אינטגרציה של Recharts ממתינה)"
+    },
     "metrics": "מדדים",
     "listings": "רשימות",
     "disputes": "מחלוקות",
@@ -174,5 +302,138 @@
     "generic": "משהו השתבש. אנא נסה שוב.",
     "unauthorized": "לא מורשה: נדרש גישת מנהל",
     "notFound": "לא נמצא"
+  },
+  "menu": {
+    "navigation": "ניווט",
+    "hiSignIn": "היי! התחבר/י",
+    "signInPrompt": "התחבר כדי לגשת לכל התכונות",
+    "viewProfile": "צפה בפרופיל",
+    "createAccount": "צור חשבון",
+    "myRentals": "השכרות שלי",
+    "listYourGear": "הוסף ציוד להשכרה",
+    "saved": "שמורים",
+    "scanId": "סרוק תעודה",
+    "verifyAccount": "אמת חשבון",
+    "help": "מרכז עזרה",
+    "reportIssue": "דווח על בעיה",
+    "preferences": "העדפות",
+    "notifications": "התראות",
+    "system": "מערכת",
+    "currency": "מטבע",
+    "distanceUnits": "יחידות מרחק",
+    "kilometers": "קילומטרים",
+    "miles": "מיילים",
+    "privacySecurity": "פרטיות ואבטחה",
+    "idVerification": "אימות זהות",
+    "startVerification": "התחל אימות",
+    "twoFactorAuth": "אימות דו-שלבי",
+    "blockedUsers": "משתמשים חסומים",
+    "about": "אודות",
+    "termsOfService": "תנאי שירות",
+    "privacyPolicy": "מדיניות פרטיות",
+    "insuranceTerms": "תנאי ביטוח",
+    "appVersion": "גרסת אפליקציה",
+    "verified": "מאומת"
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "tabs": {
+      "renter": "לשאול",
+      "owner": "להשכיר",
+      "messages": "הודעות",
+      "wallet": "ארנק",
+      "settings": "הגדרות"
+    },
+    "renter": {
+      "sections": {
+        "upcoming": "מתקרבים",
+        "active": "פעילים",
+        "history": "היסטוריה"
+      },
+      "status": {
+        "reserved": "מוזמן",
+        "confirmed": "מאושר",
+        "completed": "הושלם",
+        "disputed": "במחלוקת",
+        "cancelled": "בוטל"
+      },
+      "actions": {
+        "chat": "צ'אט",
+        "details": "פרטי הזמנה",
+        "cancel": "ביטול"
+      },
+      "empty": {
+        "upcoming": "אין הזמנות מתקרבות",
+        "active": "אין הזמנות פעילות",
+        "history": "אין היסטוריית הזמנות"
+      }
+    },
+    "owner": {
+      "myListings": "המודעות שלי",
+      "addListing": "+ הוסף מודעה",
+      "nextBooking": "הזמנה הבאה",
+      "bookingRequests": "בקשות הזמנה",
+      "actions": {
+        "pause": "השהה",
+        "resume": "המשך",
+        "edit": "ערוך",
+        "share": "שתף",
+        "approve": "אשר",
+        "decline": "דחה",
+        "reply": "השב"
+      },
+      "empty": {
+        "listings": "עדיין לא יצרת מודעות",
+        "requests": "אין בקשות הזמנה ממתינות"
+      },
+      "from": "מ"
+    },
+    "messages": {
+      "empty": "עדיין אין הודעות"
+    },
+    "wallet": {
+      "balance": "יתרה",
+      "balanceDescription": "יתרת הארנק הנוכחית שלך",
+      "transactions": "עסקאות",
+      "exportCSV": "ייצא CSV",
+      "empty": "עדיין אין עסקאות"
+    },
+    "settings": {
+      "save": "שמור",
+      "saved": "ההגדרות נשמרו בהצלחה",
+      "profile": {
+        "title": "פרופיל",
+        "description": "נהל את פרטי הפרופיל שלך",
+        "name": "שם",
+        "phone": "טלפון",
+        "uploadPhoto": "העלה תמונה"
+      },
+      "verification": {
+        "title": "אימות",
+        "description": "אמת את זהותך",
+        "verified": "מאומת",
+        "verifiedDescription": "זהותך אומתה",
+        "notVerified": "לא מאומת",
+        "notVerifiedTitle": "אמת את החשבון שלך",
+        "notVerifiedDescription": "העלה את תעודת הזהות שלך כדי לאמת את החשבון",
+        "uploadID": "העלה תעודת זהות"
+      },
+      "notifications": {
+        "title": "התראות",
+        "description": "נהל את העדפות ההתראות שלך",
+        "email": "התראות אימייל",
+        "emailDescription": "קבל התראות בדוא\"ל",
+        "push": "התראות Push",
+        "pushDescription": "קבל התראות Push",
+        "bookingUpdates": "עדכוני הזמנות",
+        "bookingUpdatesDescription": "קבל התראות על שינויי סטטוס הזמנות",
+        "messages": "הודעות",
+        "messagesDescription": "קבל התראות על הודעות חדשות"
+      },
+      "language": {
+        "title": "שפה",
+        "description": "בחר את השפה המועדפת עליך"
+      }
+    }
   }
 }

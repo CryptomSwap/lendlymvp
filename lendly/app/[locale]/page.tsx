@@ -1,20 +1,42 @@
-import { HeroCarousel } from "@/components/hero-carousel";
+"use client";
+
+// import { HeroCarousel } from "@/components/hero-carousel";
 import { LocationInput } from "@/components/location-input";
 import { CategoryChips } from "@/components/category-chips";
+import { PopularRentalsArea } from "@/components/popular-rentals-area";
+import { motion } from "framer-motion";
 
-export default async function HomePage() {
+export default function HomePage() {
   return (
-    <div className="space-y-6 pb-6">
-      {/* Hero Carousel - above header content */}
-      <HeroCarousel />
-
+    <div className="pb-24 flex flex-col" style={{ gap: '16px' }}>
       {/* Location Input */}
-      <LocationInput />
+      <motion.div 
+        className="pt-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <LocationInput />
+      </motion.div>
 
       {/* Top Categories */}
-      <div className="overflow-visible">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
         <CategoryChips />
-      </div>
+      </motion.div>
+
+      {/* Popular Rentals in Your Area Section - 20-24px below categories */}
+      <motion.div 
+        style={{ marginTop: '20px' }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <PopularRentalsArea />
+      </motion.div>
     </div>
   );
 }

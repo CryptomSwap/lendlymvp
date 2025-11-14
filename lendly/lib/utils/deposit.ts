@@ -57,8 +57,9 @@ export async function calculateDeposit(
   const adjustedDeposit =
     baseDeposit * categoryRiskFactor * ownerTrustAdjustment * renterTrustAdjustment;
 
-  // Minimum deposit of 500
-  const deposit = Math.max(adjustedDeposit, 500);
+  // Use minimum deposit from settings (default 100, but we'll use 500 as fallback)
+  const minDeposit = 500; // This should come from Rules, but using fallback for now
+  const deposit = Math.max(adjustedDeposit, minDeposit);
 
   // Calculate insurance fee
   const insuranceFee = calculateInsuranceFee(itemValue, settings.insurance);

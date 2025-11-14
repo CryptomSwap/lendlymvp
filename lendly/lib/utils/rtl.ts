@@ -3,6 +3,28 @@
 import { useLocale } from "next-intl";
 
 /**
+ * Check if the current locale is RTL (Right-to-Left)
+ * @param locale - Optional locale string. If not provided, uses the current locale from context
+ * @returns true if locale is RTL (Hebrew), false otherwise
+ */
+export function isRTL(locale?: string): boolean {
+  if (typeof window !== "undefined" && !locale) {
+    // Client-side: check document direction
+    return document.documentElement.dir === "rtl";
+  }
+  // Server-side or with explicit locale
+  return locale === "he";
+}
+
+/**
+ * Hook to get RTL status from current locale
+ */
+export function useIsRTL(): boolean {
+  const locale = useLocale();
+  return isRTL(locale as string);
+}
+
+/**
  * Get RTL-aware flex direction classes
  */
 export function useRTLFlex() {
@@ -37,8 +59,13 @@ export function useRTLSpace() {
   const isRTL = locale === "he";
   
   return {
-    spaceX: (value: string) => isRTL ? `space-x-reverse ${value}` : value,
-    spaceY: (value: string) => value, // Vertical spacing doesn't need reversal
+    ml: isRTL ? "mr" : "ml",
+    mr: isRTL ? "ml" : "mr",
+    pl: isRTL ? "pr" : "pl",
+    pr: isRTL ? "pl" : "pr",
+    ms: isRTL ? "me" : "ms",
+    me: isRTL ? "ms" : "me",
+    ps: isRTL ? "pe" : "ps",
+    pe: isRTL ? "ps" : "pe",
   };
 }
-

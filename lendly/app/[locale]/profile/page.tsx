@@ -10,6 +10,7 @@ import { ProfileForm } from "@/components/profile-form";
 import { ListingCard } from "@/components/listing-card";
 import { Link } from "@/i18n/routing";
 import { format } from "date-fns";
+import { parseRoles } from "@/lib/auth/roles";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -46,9 +47,25 @@ export default async function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-h2">{profile.name}</h2>
-                <Badge variant={profile.role === "admin" ? "default" : "outline"}>
-                  {profile.role}
-                </Badge>
+                <div className="flex gap-1 flex-wrap">
+                  {(() => {
+                    const roles = typeof profile.roles === "string" 
+                      ? parseRoles(profile.roles) 
+                      : (profile.roles || []);
+                    return roles.length > 0 ? (
+                      roles.map((role: string) => (
+                        <Badge
+                          key={role}
+                          variant={role === "ADMIN" ? "default" : "outline"}
+                        >
+                          {role}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="outline">No roles</Badge>
+                    );
+                  })()}
+                </div>
               </div>
               <p className="text-sm text-muted-foreground mb-3">{profile.email}</p>
               {profile.bio && (
@@ -63,12 +80,12 @@ export default async function ProfilePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="flex items-center gap-1">
-                    {profile.role === "admin" ? (
+                    {profile.isVerified ? (
                       <CheckCircle2 className="h-3 w-3 text-success" />
                     ) : (
                       <XCircle className="h-3 w-3 text-muted-foreground" />
                     )}
-                    {profile.role === "admin" ? "Verified" : "Not Verified"}
+                    {profile.isVerified ? "Verified" : "Not Verified"}
                   </Badge>
                 </div>
               </div>
