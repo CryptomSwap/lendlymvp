@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Shield, Zap, Calendar } from "lucide-react";
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { ListingPopup as PremiumListingPopup } from "@/components/listing-modal/ListingPopup";
 
 export interface ListingCardProps {
   listing: {
@@ -47,164 +47,6 @@ export function ListingCardSkeleton() {
         <Skeleton className="h-3 w-20" />
       </div>
     </Card>
-  );
-}
-
-// Redesigned popup sheet component
-function ListingPopup({ 
-  listing, 
-  open, 
-  onOpenChange 
-}: { 
-  listing: ListingCardProps['listing'];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const t = useTranslations("common");
-  const router = useRouter();
-  const photos = JSON.parse(listing.photos || "[]");
-  const mainPhoto = photos[0] || "/drill.png";
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="bottom" 
-        className="h-[85vh] max-h-[85vh] overflow-y-auto rounded-t-3xl border-t-2 border-primary/20"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-6"
-        >
-          {/* Image Section */}
-          <div className="relative w-full h-64 -mx-6 -mt-6 rounded-t-3xl overflow-hidden">
-            <Image
-              src={mainPhoto}
-              alt={listing.title}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-            
-            {/* Badges overlay */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-              {listing.hasInsurance && (
-                <Badge 
-                  variant="default"
-                  className="px-3 py-1.5 bg-primary/95 backdrop-blur-md text-white shadow-lg"
-                >
-                  <Shield className="h-3.5 w-3.5 mr-1.5" />
-                  {t("insurance")}
-                </Badge>
-              )}
-              {listing.isInDemand && (
-                <Badge 
-                  variant="secondary"
-                  className="px-3 py-1.5 bg-orange-500/95 backdrop-blur-md text-white shadow-lg"
-                >
-                  {t("inDemand")}
-                </Badge>
-              )}
-              {listing.instantBook && (
-                <Badge 
-                  variant="secondary"
-                  className="px-3 py-1.5 bg-green-500/95 backdrop-blur-md text-white shadow-lg"
-                >
-                  <Zap className="h-3.5 w-3.5 mr-1.5" />
-                  {t("instantBook")}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Header Section */}
-          <SheetHeader className="text-left space-y-2">
-            <SheetTitle className="text-2xl font-bold text-foreground">
-              {listing.title}
-            </SheetTitle>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <SheetDescription className="text-base m-0">
-                {listing.locationText}
-                {listing.distance && (
-                  <span className="ml-2">• {listing.distance.toFixed(1)} {t("km")}</span>
-                )}
-              </SheetDescription>
-            </div>
-          </SheetHeader>
-
-          {/* Price and Rating Section */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-            <div>
-              <p className="text-3xl font-bold text-primary">
-                ₪{listing.dailyRate}
-                <span className="text-lg font-normal text-muted-foreground">/יום</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background">
-              <Star className="h-5 w-5 fill-warning text-warning" />
-              <div className="flex flex-col">
-                <span className="text-base font-bold">{listing.ratingAvg.toFixed(1)}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({listing.ratingCount} {listing.ratingCount === 1 ? "review" : "reviews"})
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Features Section */}
-          <div className="grid grid-cols-2 gap-3">
-            {listing.hasInsurance && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <Shield className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">ביטוח כלול</span>
-              </div>
-            )}
-            {listing.instantBook && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <Zap className="h-5 w-5 text-green-600" />
-                <span className="text-sm font-medium">הזמנה מיידית</span>
-              </div>
-            )}
-            {listing.distance && listing.distance < 5 && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <MapPin className="h-5 w-5 text-blue-600" />
-                <span className="text-sm font-medium">קרוב אליך</span>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-3 pt-4">
-            <Button 
-              className="w-full h-12 text-base font-semibold" 
-              onClick={() => {
-                router.push(`/listing/${listing.id}`);
-                onOpenChange(false);
-              }}
-            >
-              {t("details")}
-            </Button>
-            {listing.instantBook && (
-              <Button 
-                variant="outline"
-                className="w-full h-12 text-base font-semibold border-primary/30 hover:bg-primary/10" 
-                onClick={() => {
-                  router.push(`/listing/${listing.id}`);
-                  onOpenChange(false);
-                }}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                הזמן עכשיו
-              </Button>
-            )}
-          </div>
-        </motion.div>
-      </SheetContent>
-    </Sheet>
   );
 }
 
@@ -360,9 +202,14 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
         </div>
       </Card>
 
-      {/* Listing Popup */}
-      <ListingPopup
-        listing={listing}
+      {/* Listing Popup - Premium Design */}
+      <PremiumListingPopup
+        listing={{
+          ...listing,
+          description: undefined, // Description not available in card listing
+          owner: undefined, // Owner data not available in card listing
+          issueCount: 0, // Issues not tracked in card listing
+        }}
         open={popupOpen}
         onOpenChange={setPopupOpen}
       />

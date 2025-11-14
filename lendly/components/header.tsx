@@ -50,30 +50,13 @@ export function Header() {
   // Signed out header
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-border backdrop-blur supports-[backdrop-filter]:bg-white/80" style={{ background: 'linear-gradient(to bottom, rgba(248, 250, 250, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)' }} dir={isRTL ? "rtl" : "ltr"}>
-        {/* Reserved space at top for animated element */}
-        <div className="h-2" />
-        <div className="container mx-auto flex min-h-20 items-center justify-center px-4 relative py-2">
-          <div className="absolute left-1/2 transform -translate-x-1/2 top-2 flex flex-col items-center">
-            <img
-              src="/logo.png"
-              alt="לנדלי"
-              className="h-14 w-auto"
-              onError={(e) => {
-                // Fallback to SVG if PNG doesn't exist
-                const target = e.target as HTMLImageElement;
-                if (target.src.endsWith('.png')) {
-                  target.src = '/logo.svg';
-                }
-              }}
-            />
-            <p className="text-[11px] text-[#2BA6A6] text-center font-bold" style={{ fontSize: '11px', marginTop: '-10px' }}>
-              לא צריך לקנות הכל - פשוט משכירים.
-            </p>
-          </div>
-          
-          {/* Burger Menu - opposite side from CTA */}
-          <div className={`absolute top-4 ${isRTL ? "right-4" : "left-4"} z-50`}>
+      <header 
+        className="sticky top-0 z-40 w-full border-b border-border/40 bg-white/95 backdrop-blur-sm shadow-sm" 
+        dir={isRTL ? "rtl" : "ltr"}
+      >
+        <div className="container mx-auto flex items-center justify-between px-4 h-14">
+          {/* Left zone (RTL: right side) - Hamburger Menu */}
+          <div className={`flex items-center ${isRTL ? "order-3" : "order-1"}`}>
             <BurgerButton
               isOpen={isOpen}
               onClick={toggle}
@@ -82,14 +65,29 @@ export function Header() {
             />
           </div>
 
-          {/* Sign In Button - positioned at visual start (left for RTL, right for LTR) */}
-          <div className={`absolute top-4 ${isRTL ? "left-4" : "right-4"} z-50`}>
+          {/* Center zone - Logo */}
+          <div className="absolute left-1/2 transform -translate-x-1/2">
+            <img
+              src="/logo.png"
+              alt="לנדלי"
+              className="h-[58px] w-auto"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src.endsWith('.png')) {
+                  target.src = '/logo.svg';
+                }
+              }}
+            />
+          </div>
+
+          {/* Right zone (RTL: left side) - Sign In Button */}
+          <div className={`flex items-center ${isRTL ? "order-1" : "order-3"}`}>
             {!isLoading && (
               <Link href="/auth/signin">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full"
+                  className="rounded-full h-9"
                   aria-label={tAuth("signIn")}
                 >
                   {tAuth("signIn")}

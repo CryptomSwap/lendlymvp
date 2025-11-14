@@ -48,7 +48,25 @@
     "noNearbyListings": "לא נמצאו השכרות בסביבה שלך",
     "viewAllListings": "עיין בכל ההשכרות",
     "retry": "נסה שוב",
-    "km": "ק״מ"
+    "km": "ק״מ",
+    "notifications": "התראות",
+    "settings": "הגדרות"
+  },
+  "search": {
+    "clearFilters": "נקה פילטרים",
+    "whereAreYouLooking": "איפה אתה מחפש?",
+    "advancedFilters": "סינון מתקדם",
+    "locationPlaceholder": "למשל: תל אביב, חיפה",
+    "priceRange": "טווח מחירים",
+    "minimumRating": "דירוג מינימלי",
+    "availability": "זמינות",
+    "selectDateRange": "בחר טווח תאריכים",
+    "onlyWithInsurance": "רק כאלו עם ביטוח",
+    "showResults": "הצג תוצאות",
+    "searching": "מחפש...",
+    "filterHelperText": "אפשר לשנות את הסינון בכל רגע",
+    "results": "תוצאות",
+    "noResults": "אין עדיין תוצאות — נסה להרחיב את הטווח או להוריד פילטרים"
   },
   "auth": {
     "signIn": "התחבר/י",
@@ -87,7 +105,8 @@
     "continueAsGuest": "המשך כאורח",
     "signInWithGoogle": "התחברות עם Google",
     "signInWithApple": "התחברות עם Apple",
-    "checkEmailHint": "בדוק שסימנת את המייל נכון"
+    "checkEmailHint": "בדוק שסימנת את המייל נכון",
+    "profile": "פרופיל"
   },
   "profile": {
     "myProfile": "הפרופיל שלי",
@@ -103,6 +122,33 @@
     "listYourGear": "פרסם ציוד",
     "noListings": "עדיין לא פרסמת פריטים",
     "listFirstItem": "פרסם את הפריט הראשון שלך",
+    "listings": {
+      "title": "השכרות שלי",
+      "subtitle": "נהל את הפריטים שאתה משכיר",
+      "addListing": "+ השכר פריט",
+      "empty": {
+        "title": "אין לך עדיין השכרות פעילות.",
+        "subtitle": "התחל להשכיר פריטים ולהרוויח מהם.",
+        "cta": "צור את ההשכרה הראשונה שלך"
+      },
+      "sort": {
+        "newest": "חדש ביותר",
+        "highestRated": "מדורג גבוה",
+        "price": "מחיר",
+        "mostRented": "הכי הושכר"
+      },
+      "status": {
+        "active": "פעיל",
+        "paused": "מושהה"
+      },
+      "issueBadge": "נדרש טיפול",
+      "actions": {
+        "edit": "ערוך",
+        "pause": "השהה",
+        "resume": "המשך",
+        "delete": "מחק"
+      }
+    },
     "reviewsReceived": "ביקורות שקיבלתי",
     "noReviews": "עדיין אין ביקורות",
     "emailCannotChange": "לא ניתן לשנות אימייל",
@@ -132,7 +178,16 @@
     "pleaseSelectDates": "אנא בחר תאריכים",
     "itemValue": "ערך הפריט (משוער)",
     "insurance": "ביטוח",
-    "rentalOptionsAroundYou": "אפשרויות השכרה סביבך"
+    "rentalOptionsAroundYou": "אפשרויות השכרה סביבך",
+    "productDescription": "תיאור המוצר",
+    "showMoreFromOwner": "הצג פריטים נוספים מהמשכיר",
+    "verified": "מאומת",
+    "instantBooking": "הזמנה מיידית",
+    "freeCancellation": "ביטול חינם עד 24 שעות לפני",
+    "support247": "תמיכה 24/7",
+    "conditionGood": "מצב טוב",
+    "reviews": "ביקורות",
+    "review": "ביקורת"
   },
   "booking": {
     "bookingDetails": "פרטי הזמנה",
@@ -434,6 +489,82 @@
         "title": "שפה",
         "description": "בחר את השפה המועדפת עליך"
       }
+    }
+  },
+  "createListing": {
+    "title": "צור מודעה חדשה",
+    "step": "שלב {current} מתוך {total}",
+    "creating": "יוצר...",
+    "createButton": "צור מודעה",
+    "steps": {
+      "basicInfo": {
+        "title": "מידע בסיסי",
+        "description": "ספר לנו על הפריט שלך",
+        "titleLabel": "כותרת *",
+        "titlePlaceholder": "למשל: Canon EOS R5 - מצלמה מקצועית",
+        "descriptionLabel": "תיאור *",
+        "descriptionPlaceholder": "תאר את הפריט שלך בפירוט...",
+        "categoryLabel": "קטגוריה *",
+        "categoryPlaceholder": "בחר קטגוריה"
+      },
+      "photos": {
+        "title": "תמונות",
+        "description": "הוסף תמונות של הפריט שלך"
+      },
+      "pricing": {
+        "title": "תמחור ומיקום",
+        "description": "הגדר את התעריפים שלך ומיקום האיסוף",
+        "dailyRateLabel": "מחיר יומי (₪) *",
+        "minDaysLabel": "ימים מינימליים *",
+        "depositOverrideLabel": "פיקדון ידני (₪)",
+        "depositOverridePlaceholder": "השאר ריק לחישוב אוטומטי",
+        "depositOverrideHelper": "אם לא מוגדר, הפיקדון יחושב כ-1.5x מעלות השכרה כוללת (מינימום ₪500)",
+        "locationLabel": "מיקום איסוף *",
+        "locationPlaceholder": "הזן כתובת או פרטי מיקום",
+        "instantBookLabel": "אפשר הזמנה מיידית (ללא צורך באישור)"
+      },
+      "availability": {
+        "title": "לוח זמינות",
+        "description": "חסום תאריכים שבהם הפריט שלך לא זמין",
+        "note": "הערה: הזמינות תתעדכן אוטומטית בהתבסס על הזמנות"
+      }
+    },
+    "success": {
+      "created": "המודעה נוצרה בהצלחה!"
+    },
+    "errors": {
+      "fillRequiredFields": "אנא מלא את כל השדות הנדרשים",
+      "uploadPhoto": "אנא העלה לפחות תמונה אחת",
+      "createFailed": "יצירת המודעה נכשלה"
+    }
+  },
+  "listings": {
+    "title": "השכרות שלי",
+    "subtitle": "נהל בקלות את כל הפריטים שאתה משכיר.",
+    "addListing": "השכר פריט חדש +",
+    "filters": {
+      "active": "פעילות",
+      "pending": "ממתינות",
+      "completed": "הסתיימו"
+    },
+    "empty": {
+      "title": "אין לך עדיין השכרות פעילות",
+      "subtitle": "כאן יופיעו כל הפריטים שתשכיר. התחלה היא קליק אחד.",
+      "cta": "צור את ההשכרה הראשונה שלך"
+    },
+    "status": {
+      "active": "פעיל",
+      "pending": "ממתין",
+      "paused": "מושהה",
+      "completed": "הושלם"
+    },
+    "issueBadge": "נדרש טיפול",
+    "actions": {
+      "edit": "ערוך",
+      "manage": "ניהול",
+      "pause": "השהה",
+      "resume": "המשך",
+      "delete": "מחק"
     }
   }
 }

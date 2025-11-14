@@ -61,9 +61,13 @@ export async function GET() {
       listings: listings.map((l) => ({
         id: l.id,
         title: l.title,
-        dailyRate: l.dailyRate,
+        dailyRate: l.pricePerDay,
         status: l.status,
         photos: l.photos,
+        ratingAvg: l.ratingAvg,
+        ratingCount: l.ratingCount,
+        category: l.category,
+        issueCount: 0, // TODO: Calculate from actual issues when issue tracking is implemented
         nextBooking: l.bookings[0]
           ? {
               id: l.bookings[0].id,

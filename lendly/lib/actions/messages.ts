@@ -1,11 +1,8 @@
 "use server";
 
-import { PrismaClient, BookingStatus } from "@prisma/client";
+import { BookingStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { calculateDeposit as calculateDepositUtil } from "@/lib/utils/deposit";
-
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-});
 
 export async function createDraftBookingWithMessage(
   listingId: string,

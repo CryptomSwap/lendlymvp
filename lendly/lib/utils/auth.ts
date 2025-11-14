@@ -1,9 +1,8 @@
 "use server";
 
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { hasRole } from "@/lib/auth/roles";
-
-const prisma = new PrismaClient();
 
 export async function checkAdminRole(userId: string): Promise<boolean> {
   try {

@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
+import { useIsRTL } from "@/lib/utils/rtl";
 
 const categories = [
   { key: "cameras", image: "/Cam.png" },
@@ -16,6 +17,8 @@ const categories = [
 
 export function CategoryChips() {
   const t = useTranslations("common");
+  const locale = useLocale();
+  const isRTL = useIsRTL();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [animatingCategory, setAnimatingCategory] = useState<string | null>(null);
   const animationRefs = useRef<{ [key: string]: HTMLImageElement | null }>({});
@@ -36,65 +39,127 @@ export function CategoryChips() {
 
     // Calculate actual width of one set of categories
     const calculateSingleSetWidth = (): number => {
-      if (scrollContent.children.length < categories.length * 2) {
-        // Fallback if not enough items rendered yet
-        return categories.length * 70; // Approximate: 58px button + 12px gap
+      if (scrollContent.children.length < categories.length) {
+        // Not enough items rendered yet
+        return 0;
       }
       
+      // Use getBoundingClientRect for more reliable measurements
       const firstItem = scrollContent.children[0] as HTMLElement;
       const middleItem = scrollContent.children[categories.length] as HTMLElement;
       
-      if (firstItem && middleItem && middleItem.offsetLeft > firstItem.offsetLeft) {
-        return middleItem.offsetLeft - firstItem.offsetLeft;
+      if (firstItem && middleItem) {
+        const firstRect = firstItem.getBoundingClientRect();
+        const middleRect = middleItem.getBoundingClientRect();
+        const width = Math.abs(middleRect.left - firstRect.left);
+        
+        if (width > 0) {
+          return width;
+        }
       }
       
-      // Fallback calculation
-      return categories.length * 70;
+      // Fallback: calculate based on item width + gap
+      if (scrollContent.children.length > 0) {
+        const firstChild = scrollContent.children[0] as HTMLElement;
+        if (firstChild) {
+          const itemWidth = firstChild.offsetWidth || 70; // 58px button + margin
+          return itemWidth * categories.length + 12 * (categories.length - 1); // gap between items
+        }
+      }
+      
+      return 0;
+    };
+
+    const getScrollPosition = (): number => {
+      // Check if container has RTL direction (might be inherited from parent)
+      const computedStyle = window.getComputedStyle(container);
+      const isContainerRTL = computedStyle.direction === 'rtl';
+      
+      if (isContainerRTL) {
+        // In RTL, scrollLeft is reversed
+        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+        return maxScroll - container.scrollLeft;
+      }
+      return container.scrollLeft;
+    };
+
+    const setScrollPosition = (position: number) => {
+      // Check if container has RTL direction
+      const computedStyle = window.getComputedStyle(container);
+      const isContainerRTL = computedStyle.direction === 'rtl';
+      
+      if (isContainerRTL) {
+        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+        container.scrollLeft = Math.max(0, maxScroll - position);
+      } else {
+        container.scrollLeft = position;
+      }
     };
 
     const initializeScroll = () => {
       const width = calculateSingleSetWidth();
-      if (width > 0) {
+      if (width > 0 && !isInitializedRef.current) {
         singleSetWidthRef.current = width;
+        
+        // Always initialize scroll position for infinite scroll
+        // Even if content fits, we want to enable scrolling
         container.style.scrollBehavior = 'auto';
-        container.scrollLeft = width;
+        // Start at the middle set (second set) to enable infinite scroll in both directions
+        setScrollPosition(width);
+        // Force a reflow to ensure scroll position is set
+        void container.offsetHeight;
+        
         isInitializedRef.current = true;
-        container.style.scrollBehavior = 'smooth';
+        // Restore smooth scrolling after initialization
+        requestAnimationFrame(() => {
+          container.style.scrollBehavior = 'smooth';
+        });
       }
     };
 
     const handleScroll = () => {
-      if (isScrollingRef.current || !isInitializedRef.current) return;
+      if (isScrollingRef.current) return;
       
-      const scrollLeft = container.scrollLeft;
+      if (!isInitializedRef.current) {
+        // Try to initialize if not done yet
+        initializeScroll();
+        return;
+      }
+      
+      const scrollPos = getScrollPosition();
       const singleSetWidth = singleSetWidthRef.current;
 
       if (singleSetWidth === 0) {
-        // Recalculate if not set
-        singleSetWidthRef.current = calculateSingleSetWidth();
+        const newWidth = calculateSingleSetWidth();
+        if (newWidth > 0) {
+          singleSetWidthRef.current = newWidth;
+        }
         return;
       }
 
+      // Always apply infinite scroll logic
+      // The content should always be scrollable due to duplicated items
+
       // If scrolled near the end (third set), jump to corresponding position in middle set
-      if (scrollLeft >= singleSetWidth * 2 - 50) {
+      if (scrollPos >= singleSetWidth * 2 - 100) {
         isScrollingRef.current = true;
         container.style.scrollBehavior = 'auto';
-        const offset = scrollLeft - singleSetWidth * 2;
-        container.scrollLeft = singleSetWidth + offset;
-        setTimeout(() => {
+        const offset = scrollPos - singleSetWidth * 2;
+        setScrollPosition(singleSetWidth + offset);
+        requestAnimationFrame(() => {
           container.style.scrollBehavior = 'smooth';
           isScrollingRef.current = false;
-        }, 0);
+        });
       }
       // If scrolled near the beginning (first set), jump to corresponding position in middle set
-      else if (scrollLeft <= 50) {
+      else if (scrollPos <= 100) {
         isScrollingRef.current = true;
         container.style.scrollBehavior = 'auto';
-        container.scrollLeft = singleSetWidth + scrollLeft;
-        setTimeout(() => {
+        setScrollPosition(singleSetWidth + scrollPos);
+        requestAnimationFrame(() => {
           container.style.scrollBehavior = 'smooth';
           isScrollingRef.current = false;
-        }, 0);
+        });
       }
     };
 
@@ -107,16 +172,35 @@ export function CategoryChips() {
 
     // Also try on next frame
     requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (!isInitializedRef.current) {
+          initializeScroll();
+        }
+      }, 100);
+    });
+
+    // Try again after a longer delay to ensure all styles are applied
+    const longTimeoutId = setTimeout(() => {
       if (!isInitializedRef.current) {
         initializeScroll();
       }
-    });
+    }, 500);
+
+    // Also try when window loads
+    const handleLoad = () => {
+      if (!isInitializedRef.current) {
+        initializeScroll();
+      }
+    };
+    window.addEventListener('load', handleLoad);
 
     return () => {
       clearTimeout(timeoutId);
+      clearTimeout(longTimeoutId);
+      window.removeEventListener('load', handleLoad);
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [categories.length]);
+  }, [categories.length, isRTL]);
 
   const handleCategoryClick = (categoryKey: string) => {
     // Trigger animation instantly with synchronous state update
@@ -149,23 +233,103 @@ export function CategoryChips() {
     }
   };
 
+  // Drag to scroll functionality
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current || !scrollContainerRef.current) return;
+      e.preventDefault();
+      const x = e.pageX - scrollContainerRef.current.offsetLeft;
+      const walk = (x - startXRef.current) * 2; // Scroll speed multiplier
+      scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+    };
+
+    const handleMouseUp = () => {
+      if (!scrollContainerRef.current) return;
+      isDraggingRef.current = false;
+      scrollContainerRef.current.style.cursor = 'grab';
+      scrollContainerRef.current.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollContainerRef.current.offsetLeft;
+    scrollLeftRef.current = scrollContainerRef.current.scrollLeft;
+    scrollContainerRef.current.style.cursor = 'grabbing';
+    scrollContainerRef.current.style.userSelect = 'none';
+  };
+
+  const handleMouseUp = () => {
+    if (!scrollContainerRef.current) return;
+    isDraggingRef.current = false;
+    scrollContainerRef.current.style.cursor = 'grab';
+    scrollContainerRef.current.style.userSelect = '';
+  };
+
+  const handleMouseLeave = () => {
+    if (!scrollContainerRef.current) return;
+    isDraggingRef.current = false;
+    scrollContainerRef.current.style.cursor = 'grab';
+    scrollContainerRef.current.style.userSelect = '';
+  };
+
   return (
-    <div className="px-4 py-2 relative" style={{ zIndex: 0, position: 'relative' }}>
+    <div className="py-2 relative" style={{ zIndex: 0, position: 'relative', width: '100%' }}>
       {/* Horizontal scrolling infinite carousel */}
       <div 
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4" 
-        style={{ overflowY: 'visible' }}
+        className="overflow-x-auto scrollbar-hide scroll-smooth" 
+        style={{ 
+          overflowY: 'hidden',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-x',
+          cursor: 'grab',
+          width: '100%',
+          maxWidth: '100%',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
-        <div ref={scrollContentRef} className="flex gap-3 relative" style={{ gap: '12px' }}>
+        <div 
+          ref={scrollContentRef} 
+          className="flex relative" 
+          style={{ 
+            gap: '12px', 
+            width: 'max-content',
+            minWidth: '100%',
+            display: 'flex',
+            flexShrink: 0
+          }}
+        >
           {duplicatedCategories.map((category, index) => {
             const isSelected = selectedCategory === category.key;
             const uniqueKey = `${category.key}-${index}`;
             return (
               <div
                 key={uniqueKey}
-                className="flex-shrink-0 snap-start flex flex-col items-center"
-                style={{ zIndex: isSelected ? 10 : 1 }}
+                className="flex-shrink-0 flex flex-col items-center"
+                style={{ 
+                  zIndex: isSelected ? 10 : 1,
+                  minWidth: '70px',
+                  flexShrink: 0
+                }}
               >
                 <button
                   className={cn(
@@ -174,9 +338,18 @@ export function CategoryChips() {
                     isSelected && "scale-98"
                   )}
                   aria-label={t(category.key)}
-                  onClick={() => handleCategoryClick(category.key)}
+                  onClick={(e) => {
+                    // Only trigger click if not dragging
+                    if (!isDraggingRef.current) {
+                      handleCategoryClick(category.key);
+                    }
+                  }}
                   onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'scale(0.96)';
+                    // Allow event to bubble for drag scrolling
+                    if (!isDraggingRef.current) {
+                      e.currentTarget.style.transform = 'scale(0.96)';
+                    }
+                    // Don't stop propagation - let parent handle drag
                   }}
                   onMouseUp={(e) => {
                     e.currentTarget.style.transform = '';
@@ -187,6 +360,7 @@ export function CategoryChips() {
                   style={{ 
                     transition: 'transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     willChange: 'transform',
+                    pointerEvents: 'auto',
                   }}
                 >
                   <div 

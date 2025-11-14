@@ -157,6 +157,13 @@ export function SidePanel({ isOpen, onClose, user }: SidePanelProps) {
       show: () => true,
     },
     {
+      label: "List Item",
+      labelHe: "השכר פריט",
+      icon: PlusCircle,
+      href: "/listings/new",
+      show: () => true,
+    },
+    {
       label: "My Rentals",
       labelHe: "ההשכרות שלי",
       icon: Calendar,
@@ -168,13 +175,6 @@ export function SidePanel({ isOpen, onClose, user }: SidePanelProps) {
       labelHe: "הציוד שלי",
       icon: Boxes,
       href: "/listings",
-      show: () => true,
-    },
-    {
-      label: "List Item",
-      labelHe: "רשום פריט חדש",
-      icon: PlusCircle,
-      href: "/listings/new",
       show: () => true,
     },
     {

@@ -1,11 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/utils/auth";
-
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-});
 
 export async function getPendingListings(userId: string) {
   await requireAdmin(userId);

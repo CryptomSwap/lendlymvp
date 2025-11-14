@@ -1,11 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-});
 
 export async function updateUserProfile(data: {
   name?: string;

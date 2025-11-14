@@ -16,23 +16,28 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { DateRange } from "react-day-picker";
-
-const categories = [
-  "Cameras",
-  "Drones",
-  "Tools",
-  "DJ gear",
-  "Camping",
-];
+import { useTranslations } from "next-intl";
+import { ListItemStepBasicInfo } from "@/components/list-item-step-basic-info";
 
 export default function CreateListingPage() {
   const router = useRouter();
+  const t = useTranslations("createListing");
+  const tCommon = useTranslations("common");
+  
+  const categories = [
+    { value: "Cameras", label: tCommon("cameras") },
+    { value: "Drones", label: tCommon("drones") },
+    { value: "Tools", label: tCommon("tools") },
+    { value: "DJ gear", label: tCommon("djGear") },
+    { value: "Camping", label: tCommon("camping") },
+  ];
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
+    tags: [] as string[],
     dailyRate: "",
     depositOverride: "",
     minDays: "1",
@@ -60,12 +65,12 @@ export default function CreateListingPage() {
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.description || !formData.category || !formData.dailyRate || !formData.locationText) {
-      toast.error("Please fill in all required fields");
+      toast.error(t("errors.fillRequiredFields"));
       return;
     }
 
     if (formData.photos.length === 0) {
-      toast.error("Please upload at least one photo");
+      toast.error(t("errors.uploadPhoto"));
       return;
     }
 
@@ -89,15 +94,35 @@ export default function CreateListingPage() {
         instantBook: formData.instantBook,
       });
 
-      toast.success("Listing created successfully!");
+      toast.success(t("success.created"));
       router.push("/listings");
     } catch (error) {
-      toast.error("Failed to create listing");
+      toast.error(t("errors.createFailed"));
       console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // If step 1, render the new modern component
+  if (currentStep === 1) {
+    return (
+      <ListItemStepBasicInfo
+        formData={{
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          tags: formData.tags,
+        }}
+        onUpdate={(data) => setFormData({ ...formData, ...data })}
+        onNext={handleNext}
+        onSaveDraft={() => {
+          // Placeholder for save draft functionality
+          toast.success("טיוטה נשמרה");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6 pb-24">
@@ -108,9 +133,9 @@ export default function CreateListingPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-h1">Create New Listing</h1>
+          <h1 className="text-h1">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Step {currentStep} of {totalSteps}
+            {t("step", { current: currentStep, total: totalSteps })}
           </p>
         </div>
       </div>
@@ -128,72 +153,12 @@ export default function CreateListingPage() {
         ))}
       </div>
 
-      {/* Step 1: Basic Info */}
-      {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Tell us about your item</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                placeholder="e.g., Canon EOS R5 - Professional Camera"
-                className="mt-2"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Describe your item in detail..."
-                className="mt-2 min-h-[150px]"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category *</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, category: value })
-                }
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Step 2: Photos */}
       {currentStep === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Photos</CardTitle>
-            <CardDescription>Add photos of your item</CardDescription>
+            <CardTitle>{t("steps.photos.title")}</CardTitle>
+            <CardDescription>{t("steps.photos.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <PhotoUpload
@@ -208,13 +173,13 @@ export default function CreateListingPage() {
       {currentStep === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle>Pricing & Location</CardTitle>
-            <CardDescription>Set your rates and pickup location</CardDescription>
+            <CardTitle>{t("steps.pricing.title")}</CardTitle>
+            <CardDescription>{t("steps.pricing.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="dailyRate">Daily Rate (₪) *</Label>
+                <Label htmlFor="dailyRate">{t("steps.pricing.dailyRateLabel")}</Label>
                 <Input
                   id="dailyRate"
                   type="number"
@@ -230,7 +195,7 @@ export default function CreateListingPage() {
               </div>
 
               <div>
-                <Label htmlFor="minDays">Minimum Days *</Label>
+                <Label htmlFor="minDays">{t("steps.pricing.minDaysLabel")}</Label>
                 <Input
                   id="minDays"
                   type="number"
@@ -246,7 +211,7 @@ export default function CreateListingPage() {
             </div>
 
             <div>
-              <Label htmlFor="depositOverride">Deposit Override (₪)</Label>
+              <Label htmlFor="depositOverride">{t("steps.pricing.depositOverrideLabel")}</Label>
               <Input
                 id="depositOverride"
                 type="number"
@@ -256,23 +221,23 @@ export default function CreateListingPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, depositOverride: e.target.value })
                 }
-                placeholder="Leave empty for automatic calculation"
+                placeholder={t("steps.pricing.depositOverridePlaceholder")}
                 className="mt-2"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                If not set, deposit will be calculated as 1.5x total rental cost (min ₪500)
+                {t("steps.pricing.depositOverrideHelper")}
               </p>
             </div>
 
             <div>
-              <Label htmlFor="locationText">Pickup Location *</Label>
+              <Label htmlFor="locationText">{t("steps.pricing.locationLabel")}</Label>
               <Textarea
                 id="locationText"
                 value={formData.locationText}
                 onChange={(e) =>
                   setFormData({ ...formData, locationText: e.target.value })
                 }
-                placeholder="Enter address or location details"
+                placeholder={t("steps.pricing.locationPlaceholder")}
                 className="mt-2 min-h-[100px]"
                 required
               />
@@ -287,7 +252,7 @@ export default function CreateListingPage() {
                 }
               />
               <Label htmlFor="instantBook" className="cursor-pointer">
-                Enable instant booking (no approval required)
+                {t("steps.pricing.instantBookLabel")}
               </Label>
             </div>
           </CardContent>
@@ -298,8 +263,8 @@ export default function CreateListingPage() {
       {currentStep === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Availability Calendar</CardTitle>
-            <CardDescription>Block dates when your item is unavailable</CardDescription>
+            <CardTitle>{t("steps.availability.title")}</CardTitle>
+            <CardDescription>{t("steps.availability.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Calendar
@@ -325,7 +290,7 @@ export default function CreateListingPage() {
               className="rounded-md border"
             />
             <p className="text-sm text-muted-foreground mt-4">
-              Note: Availability will be automatically updated based on bookings
+              {t("steps.availability.note")}
             </p>
           </CardContent>
         </Card>
@@ -335,12 +300,12 @@ export default function CreateListingPage() {
       <div className="flex gap-4">
         {currentStep > 1 && (
           <Button variant="outline" onClick={handleBack} className="flex-1">
-            Back
+            {tCommon("previous")}
           </Button>
         )}
         {currentStep < totalSteps ? (
           <Button onClick={handleNext} className="flex-1">
-            Next
+            {tCommon("next")}
           </Button>
         ) : (
           <Button
@@ -352,10 +317,10 @@ export default function CreateListingPage() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                {t("creating")}
               </>
             ) : (
-              "Create Listing"
+              t("createButton")
             )}
           </Button>
         )}

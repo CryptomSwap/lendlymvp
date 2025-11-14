@@ -1,12 +1,8 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin } from "@/lib/utils/auth";
-
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-});
 
 // Overview metrics
 export async function getAdminMetrics() {

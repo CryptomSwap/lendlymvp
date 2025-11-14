@@ -48,7 +48,25 @@
     "noNearbyListings": "No rentals found in your area",
     "viewAllListings": "View All Listings",
     "retry": "Retry",
-    "km": "km"
+    "km": "km",
+    "notifications": "Notifications",
+    "settings": "Settings"
+  },
+  "search": {
+    "clearFilters": "Clear Filters",
+    "whereAreYouLooking": "Where are you looking?",
+    "advancedFilters": "Advanced Filters",
+    "locationPlaceholder": "e.g., Tel Aviv, Haifa",
+    "priceRange": "Price Range",
+    "minimumRating": "Minimum Rating",
+    "availability": "Availability",
+    "selectDateRange": "Select Date Range",
+    "onlyWithInsurance": "Only with Insurance",
+    "showResults": "Show Results",
+    "searching": "Searching...",
+    "filterHelperText": "You can change the filters at any time",
+    "results": "Results",
+    "noResults": "No results yet — try expanding the range or removing filters"
   },
   "auth": {
     "signIn": "Sign In",
@@ -87,7 +105,8 @@
     "continueAsGuest": "Continue as Guest",
     "signInWithGoogle": "Sign in with Google",
     "signInWithApple": "Sign in with Apple",
-    "checkEmailHint": "Please double-check your email address"
+    "checkEmailHint": "Please double-check your email address",
+    "profile": "Profile"
   },
   "profile": {
     "myProfile": "My Profile",
@@ -434,6 +453,53 @@
         "title": "Language",
         "description": "Choose your preferred language"
       }
+    }
+  },
+  "createListing": {
+    "title": "Create New Listing",
+    "step": "Step {current} of {total}",
+    "creating": "Creating...",
+    "createButton": "Create Listing",
+    "steps": {
+      "basicInfo": {
+        "title": "Basic Information",
+        "description": "Tell us about your item",
+        "titleLabel": "Title *",
+        "titlePlaceholder": "e.g., Canon EOS R5 - Professional Camera",
+        "descriptionLabel": "Description *",
+        "descriptionPlaceholder": "Describe your item in detail...",
+        "categoryLabel": "Category *",
+        "categoryPlaceholder": "Select a category"
+      },
+      "photos": {
+        "title": "Photos",
+        "description": "Add photos of your item"
+      },
+      "pricing": {
+        "title": "Pricing & Location",
+        "description": "Set your rates and pickup location",
+        "dailyRateLabel": "Daily Rate (₪) *",
+        "minDaysLabel": "Minimum Days *",
+        "depositOverrideLabel": "Deposit Override (₪)",
+        "depositOverridePlaceholder": "Leave empty for automatic calculation",
+        "depositOverrideHelper": "If not set, deposit will be calculated as 1.5x total rental cost (min ₪500)",
+        "locationLabel": "Pickup Location *",
+        "locationPlaceholder": "Enter address or location details",
+        "instantBookLabel": "Enable instant booking (no approval required)"
+      },
+      "availability": {
+        "title": "Availability Calendar",
+        "description": "Block dates when your item is unavailable",
+        "note": "Note: Availability will be automatically updated based on bookings"
+      }
+    },
+    "success": {
+      "created": "Listing created successfully!"
+    },
+    "errors": {
+      "fillRequiredFields": "Please fill in all required fields",
+      "uploadPhoto": "Please upload at least one photo",
+      "createFailed": "Failed to create listing"
     }
   }
 }

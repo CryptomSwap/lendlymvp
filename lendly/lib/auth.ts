@@ -1,9 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { cookies } from "next/headers";
-
-const prisma = new PrismaClient();
 
 // Magic link token storage (in-memory for MVP, use Redis in production)
 const magicLinkTokens = new Map<string, { email: string; expiresAt: Date }>();

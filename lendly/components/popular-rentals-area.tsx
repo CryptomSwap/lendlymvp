@@ -4,14 +4,17 @@ import { useTranslations } from "next-intl";
 import { useNearbyListings } from "@/lib/hooks/use-nearby-listings";
 import { ListingCard, ListingCardSkeleton } from "@/components/listing-card";
 import { Link } from "@/i18n/routing";
-import { MapPin, ChevronLeft } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useIsRTL } from "@/lib/utils/rtl";
 
 export function PopularRentalsArea() {
   const t = useTranslations("common");
+  const isRTL = useIsRTL();
   const { listings, loading } = useNearbyListings();
+  const ChevronIcon = isRTL ? ChevronRight : ChevronLeft;
 
   // Loading state - 3 shimmering placeholders
   if (loading) {
@@ -107,11 +110,12 @@ export function PopularRentalsArea() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="mb-4 flex items-center justify-between"
+        dir={isRTL ? "rtl" : "ltr"}
       >
-        <h2 className="text-[19px] font-semibold text-[#0F172A]">
+        <h2 className="text-[19px] font-semibold text-[#0F172A] text-center flex-1">
           {t("popularRentals")}
         </h2>
-        <Link href="/search">
+        <Link href="/search" className={isRTL ? "order-first" : ""}>
           <button 
             className="flex items-center gap-1 text-[#0FA2A1] text-[13px] font-medium hover:opacity-80 transition-opacity duration-120"
             style={{ 
@@ -120,7 +124,7 @@ export function PopularRentalsArea() {
             }}
           >
             {t("seeAll")}
-            <ChevronLeft className="h-3 w-3" strokeWidth={2} />
+            <ChevronIcon className="h-3 w-3" strokeWidth={2} />
           </button>
         </Link>
       </motion.div>
