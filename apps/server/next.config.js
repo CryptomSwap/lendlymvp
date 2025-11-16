@@ -1,8 +1,32 @@
-import { NextConfig } from 'next'
+const path = require('path')
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   experimental: {
     appDir: true,
+  },
+  transpilePackages: ['@lendly/shared'],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      const serverNodeModules = path.resolve(__dirname, 'node_modules')
+      const fs = require('fs')
+      
+      // Ensure zod resolves correctly
+      if (!config.resolve) config.resolve = {}
+      if (!config.resolve.alias) config.resolve.alias = {}
+      
+      const zodPath = path.join(serverNodeModules, 'zod')
+      if (fs.existsSync(zodPath)) {
+        config.resolve.alias['zod'] = zodPath
+      }
+      
+      // Module resolution priority
+      if (!Array.isArray(config.resolve.modules)) {
+        config.resolve.modules = []
+      }
+      config.resolve.modules.unshift(serverNodeModules)
+    }
+    return config
   },
   async headers() {
     return [
@@ -18,4 +42,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+module.exports = nextConfig
