@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "@/i18n/routing";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Shield, Zap, Calendar } from "lucide-react";
+import { Star, MapPin, Shield, Zap, Calendar, BadgeCheck } from "lucide-react";
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,33 +29,69 @@ export interface ListingCardProps {
     instantBook?: boolean;
   };
   showSkeleton?: boolean;
+  size?: "default" | "compact";
+  fullWidth?: boolean;
 }
 
 // Skeleton component for loading state
-export function ListingCardSkeleton() {
+export function ListingCardSkeleton({
+  size = "default",
+  fullWidth = false,
+}: {
+  size?: "default" | "compact";
+  fullWidth?: boolean;
+}) {
+  const isCompact = size === "compact";
+  const widthClass = fullWidth
+    ? "w-full"
+    : isCompact
+      ? "w-[112px]"
+      : "w-[208px]";
   return (
     <Card 
-      className="overflow-hidden w-52 min-w-[208px] flex-shrink-0 rounded-2xl"
+      className={cn(
+        "overflow-hidden rounded-xl flex flex-col",
+        widthClass,
+        !fullWidth && "flex-shrink-0"
+      )}
       role="status"
       aria-label="Loading listing"
+      style={{
+        minHeight: isCompact ? '180px' : '240px',
+        maxHeight: isCompact ? '180px' : '240px',
+        boxShadow: '0 4px 12px rgba(15, 162, 161, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)',
+      }}
     >
-      <Skeleton className="w-full h-[140px]" />
-      <div className="p-3 space-y-1">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-3 w-16" />
+      <Skeleton className={cn("w-full flex-shrink-0", isCompact ? "h-[70px]" : "h-[120px]")} />
+      <div className={cn("flex flex-col flex-1", isCompact ? "p-2" : "p-4")}>
+        <Skeleton className={cn("w-full", isCompact ? "h-6" : "h-8")} />
+        <div className="flex flex-col gap-2 mt-auto">
+          <Skeleton className={cn(isCompact ? "h-3 w-12" : "h-4 w-20")} />
+          <Skeleton className={cn("h-3", isCompact ? "w-10" : "w-16")} />
+        </div>
       </div>
     </Card>
   );
 }
 
-export function ListingCard({ listing, showSkeleton = false }: ListingCardProps) {
+export function ListingCard({
+  listing,
+  showSkeleton = false,
+  size = "default",
+  fullWidth = false,
+}: ListingCardProps) {
   const t = useTranslations("common");
   const isRTL = useIsRTL();
   const photos = JSON.parse(listing.photos || "[]");
   const mainPhoto = photos[0] || "/drill.png";
   const [imageError, setImageError] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
+  const isCompact = size === "compact";
+  const cardWidthClass = fullWidth
+    ? "w-full"
+    : isCompact
+      ? "w-[112px]"
+      : "w-[208px]";
   
   // Track if user is scrolling (for horizontal carousel)
   const isScrolling = useRef(false);
@@ -106,13 +142,17 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
   };
 
   if (showSkeleton) {
-    return <ListingCardSkeleton />;
+    return <ListingCardSkeleton size={size} fullWidth={fullWidth} />;
   }
 
   return (
     <>
       <Card
-        className="overflow-hidden w-52 min-w-[208px] flex-shrink-0 cursor-pointer rounded-2xl shadow-sm hover:shadow-md transition-all select-none bg-white"
+        className={cn(
+          "overflow-hidden cursor-pointer rounded-xl transition-all select-none bg-white flex flex-col",
+          cardWidthClass,
+          !fullWidth && "flex-shrink-0"
+        )}
         role="article"
         aria-label={`${listing.title}, ${listing.dailyRate} ₪ per day`}
         onClick={handleClick}
@@ -121,6 +161,15 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
         onTouchEnd={handleTouchEnd}
         style={{
           transition: 'transform 120ms ease-out, box-shadow 200ms ease-out',
+          minHeight: isCompact ? '180px' : '240px',
+          maxHeight: isCompact ? '180px' : '240px',
+          boxShadow: '0 4px 12px rgba(15, 162, 161, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 162, 161, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 162, 161, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)';
         }}
         onMouseDown={(e) => {
           e.currentTarget.style.transform = 'scale(0.97)';
@@ -132,9 +181,12 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
           e.currentTarget.style.transform = '';
         }}
       >
-        {/* Image Container - ~140px height */}
+        {/* Image Container */}
         <div 
-          className="relative w-full h-[140px] bg-muted overflow-hidden"
+          className={cn(
+            "relative w-full bg-muted overflow-hidden flex-shrink-0",
+            isCompact ? "h-[70px]" : "h-[120px]"
+          )}
         >
           {!imageError ? (
             <Image
@@ -142,53 +194,128 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
               alt={listing.title}
               fill
               className="object-cover"
-              sizes="208px"
+              sizes={isCompact ? "112px" : "208px"}
               loading="lazy"
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
+            <div className={cn(
+              "w-full h-full flex items-center justify-center bg-muted text-muted-foreground",
+              isCompact ? "text-[9px]" : "text-xs"
+            )}>
               No Image
             </div>
           )}
           
-          {/* Badges - Top Right corner */}
-          <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
+          {/* Badges - Top Left corner */}
+          <div className={cn(
+            "absolute top-2 left-2 flex flex-col items-start z-10",
+            isCompact ? "gap-1" : "gap-1.5"
+          )}>
             {listing.hasInsurance && (
-              <div className="rounded-full bg-[#00B3A0] text-white text-[10px] px-2 py-1 font-medium shadow">
-                {t("insurance")}
+              <div 
+                className={cn(
+                  "rounded-full text-blue-900 font-medium shadow-md flex items-center justify-center gap-0.5 whitespace-nowrap relative overflow-hidden",
+                  isCompact ? "text-[7px] px-1.5 py-0.5" : "text-[9px] px-2 py-0.5"
+                )}
+                style={{
+                  background: 'linear-gradient(135deg, #93C5FD 0%, #BFDBFE 50%, #93C5FD 100%)',
+                  backgroundSize: '200% 200%',
+                  animation: 'shimmer 3s ease-in-out infinite',
+                }}
+              >
+                <div 
+                  className="absolute inset-0 opacity-40"
+                  style={{
+                    background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%)',
+                    backgroundSize: '200% 200%',
+                    animation: 'sparkle 2.5s ease-in-out infinite',
+                  }}
+                />
+                <BadgeCheck className={cn(
+                  "flex-shrink-0 relative z-10 text-blue-900",
+                  isCompact ? "h-2.5 w-2.5" : "h-3 w-3"
+                )} />
+                <span className="relative z-10">{t("insurance")}</span>
               </div>
             )}
             {listing.isInDemand && (
-              <div className="rounded-full bg-orange-500 text-white text-[10px] px-2 py-1 font-medium shadow">
-                {t("inDemand")}
+              <div 
+                className={cn(
+                  "rounded-full text-blue-900 font-medium shadow-md flex items-center justify-center gap-0.5 whitespace-nowrap relative overflow-hidden",
+                  isCompact ? "text-[7px] px-1.5 py-0.5" : "text-[9px] px-2 py-0.5"
+                )}
+                style={{
+                  background: 'linear-gradient(135deg, #93C5FD 0%, #BFDBFE 50%, #93C5FD 100%)',
+                  backgroundSize: '200% 200%',
+                  animation: 'shimmer 3s ease-in-out infinite',
+                }}
+              >
+                <div 
+                  className="absolute inset-0 opacity-40"
+                  style={{
+                    background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%)',
+                    backgroundSize: '200% 200%',
+                    animation: 'sparkle 2.5s ease-in-out infinite',
+                  }}
+                />
+                <BadgeCheck className={cn(
+                  "flex-shrink-0 relative z-10 text-blue-900",
+                  isCompact ? "h-2.5 w-2.5" : "h-3 w-3"
+                )} />
+                <span className="relative z-10">{t("inDemand")}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-3 space-y-1">
-          {/* Title - 2 lines max */}
+        <div className={cn("flex flex-col flex-1 min-h-0", isCompact ? "p-2" : "p-4")}>
+          {/* Title - 2 lines max with fixed height */}
           <h3 
-            className="text-sm font-semibold line-clamp-2 text-gray-900"
+            className={cn(
+              "font-semibold line-clamp-2 text-gray-900 overflow-hidden",
+              isCompact ? "text-[11px] leading-tight min-h-[24px]" : "text-sm leading-tight min-h-[32px]"
+            )}
             dir="auto"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {listing.title}
           </h3>
           
+          {/* Price, Rating, and Metadata - Aligned to same vertical grid */}
+          <div className="flex flex-col gap-2 mt-auto">
           {/* Price row */}
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-bold text-[#00B3A0]">
+          <div className="flex items-baseline gap-0.5 whitespace-nowrap">
+            <span className={cn(
+              "font-bold text-[#00B3A0]",
+              isCompact ? "text-[11px]" : "text-sm"
+            )}>
               ₪{listing.dailyRate}
             </span>
-            <span className="text-xs text-gray-500">/יום</span>
+            <span className={cn(
+              "text-gray-500",
+              isCompact ? "text-[9px]" : "text-xs"
+            )}>/יום</span>
           </div>
           
           {/* Rating Row */}
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Star className="h-3 w-3 fill-warning text-warning" />
-            <span>{listing.ratingAvg.toFixed(1)}</span>
+          <div className={cn(
+            "flex items-center gap-0.5 text-gray-500 min-h-[20px]",
+            isCompact ? "text-[9px]" : "text-xs"
+          )}>
+            <Star className={cn(
+              "fill-warning text-warning flex-shrink-0",
+              isCompact ? "h-2 w-2" : "h-3 w-3"
+            )} />
+            <span className="truncate">{listing.ratingAvg.toFixed(1)}</span>
+            </div>
           </div>
         </div>
       </Card>

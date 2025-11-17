@@ -151,7 +151,10 @@
     "pleaseSelectDates": "Please select dates",
     "itemValue": "Item value (approx)",
     "insurance": "Insurance",
-    "rentalOptionsAroundYou": "Rental Options Around You"
+    "rentalOptionsAroundYou": "Rental Options Around You",
+    "review": "review",
+    "reviews": "reviews",
+    "productDescription": "Product Description"
   },
   "booking": {
     "bookingDetails": "Booking Details",

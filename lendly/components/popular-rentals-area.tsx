@@ -30,14 +30,29 @@ export function PopularRentalsArea() {
   // Motion value for smooth dragging
   const x = useMotionValue(0);
   const dragStartX = useRef(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
   
   // Calculate max index (last valid starting position for a pair)
   const maxIndex = Math.max(0, listings.length - 2);
   
+  // Calculate centering offset to center the visible pair of cards
+  const getCenteringOffset = () => {
+    if (!viewportRef.current) return 0;
+    // Get the actual content width (offsetWidth includes padding, so we need to subtract it)
+    // The viewport has px-4 which is 16px padding on each side = 32px total
+    const viewportPadding = 32; // 16px * 2 (px-4 = 1rem = 16px)
+    const viewportWidth = viewportRef.current.offsetWidth - viewportPadding;
+    const twoCardsWidth = (cardWidth * 2) + gap; // Width of 2 cards + gap between them
+    const offset = (viewportWidth - twoCardsWidth) / 2;
+    return offset;
+  };
+  
   // Update motion value when currentIndex changes (when not dragging)
   useEffect(() => {
     if (!isDragging && listings.length > 0) {
-      const targetX = isRTL ? currentIndex * cardStep : -currentIndex * cardStep;
+      const centeringOffset = getCenteringOffset();
+      const baseX = isRTL ? currentIndex * cardStep : -currentIndex * cardStep;
+      const targetX = baseX + (isRTL ? -centeringOffset : centeringOffset);
       animate(x, targetX, {
         type: "spring",
         stiffness: 180,
@@ -47,10 +62,32 @@ export function PopularRentalsArea() {
     }
   }, [currentIndex, isDragging, isRTL, cardStep, x, listings.length]);
   
-  // Initialize position on mount
+  // Initialize position on mount - center the first two cards
   useEffect(() => {
-    x.set(0);
-  }, [x]);
+    if (listings.length > 0 && viewportRef.current) {
+      // Use setTimeout to ensure viewport dimensions are available
+      const timer = setTimeout(() => {
+        const centeringOffset = getCenteringOffset();
+        x.set(isRTL ? -centeringOffset : centeringOffset);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [x, listings.length, isRTL]);
+  
+  // Recalculate centering on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isDragging && listings.length > 0 && viewportRef.current) {
+        const centeringOffset = getCenteringOffset();
+        const baseX = isRTL ? currentIndex * cardStep : -currentIndex * cardStep;
+        const targetX = baseX + (isRTL ? -centeringOffset : centeringOffset);
+        x.set(targetX);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isDragging, listings.length, currentIndex, isRTL, cardStep, x]);
   
   // Handle drag start - ensure we start from the current position
   const handleDragStart = () => {
@@ -104,9 +141,9 @@ export function PopularRentalsArea() {
   // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   if (loading) {
     return (
-      <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-x-auto overflow-y-visible">
+      <section className="w-full mt-6 flex flex-col overflow-y-visible" style={{ alignItems: 'center', paddingLeft: '8px' }}>
         {/* Header */}
-        <div className="px-4 mb-2">
+        <div className="w-full max-w-[calc(100%-32px)] px-4 mb-2">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -121,7 +158,7 @@ export function PopularRentalsArea() {
         </div>
         {/* FIXED: Changed to overflow-x-auto overflow-y-visible, removed snap, added gap-4 for consistent spacing */}
         <div 
-          className="flex gap-4 overflow-x-auto overflow-y-visible scrollbar-hide scroll-smooth px-4 w-full mx-auto"
+          className="flex gap-4 overflow-x-auto overflow-y-visible scrollbar-hide scroll-smooth px-4 w-full max-w-[calc(100%-32px)]"
           style={{
             scrollBehavior: 'smooth',
           }}
@@ -150,9 +187,9 @@ export function PopularRentalsArea() {
   // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   if (listings.length === 0) {
     return (
-      <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-x-auto overflow-y-visible">
+      <section className="w-full mt-6 flex flex-col overflow-x-auto overflow-y-visible" style={{ alignItems: 'center', paddingLeft: '8px' }}>
         {/* Header */}
-        <div className="px-4 mb-2">
+        <div className="w-full max-w-[calc(100%-32px)] px-4 mb-2">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -169,6 +206,7 @@ export function PopularRentalsArea() {
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.012 }}
+          className="w-full max-w-[calc(100%-32px)]"
         >
           <Card 
             className="max-w-full rounded-2xl p-4 flex flex-col items-center justify-center text-center mx-4"
@@ -206,9 +244,9 @@ export function PopularRentalsArea() {
   // Listings carousel - IMPROVED: Bouncy drag-to-snap carousel that moves 2 cards at a time
   // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   return (
-    <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-y-visible">
+    <section className="w-full mt-6 flex flex-col overflow-y-visible" style={{ alignItems: 'center', paddingLeft: '8px' }}>
       {/* Header */}
-      <div className="px-4 mb-2">
+      <div className="w-full max-w-[calc(100%-32px)] px-4 mb-2">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -237,7 +275,7 @@ export function PopularRentalsArea() {
       </div>
       
       {/* Viewport wrapper: overflow-x-hidden to clip horizontal, overflow-y-visible for shadows */}
-      <div className="relative overflow-x-hidden overflow-y-visible px-4 w-full">
+      <div ref={viewportRef} className="relative overflow-x-hidden overflow-y-visible px-4 w-full max-w-[calc(100%-32px)]">
         {/* Draggable carousel container with bouncy spring animation */}
         <motion.div
           drag="x"

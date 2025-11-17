@@ -179,15 +179,15 @@
     "itemValue": "ערך הפריט (משוער)",
     "insurance": "ביטוח",
     "rentalOptionsAroundYou": "אפשרויות השכרה סביבך",
+    "review": "ביקורת",
+    "reviews": "ביקורות",
     "productDescription": "תיאור המוצר",
     "showMoreFromOwner": "הצג פריטים נוספים מהמשכיר",
     "verified": "מאומת",
     "instantBooking": "הזמנה מיידית",
     "freeCancellation": "ביטול חינם עד 24 שעות לפני",
     "support247": "תמיכה 24/7",
-    "conditionGood": "מצב טוב",
-    "reviews": "ביקורות",
-    "review": "ביקורת"
+    "conditionGood": "מצב טוב"
   },
   "booking": {
     "bookingDetails": "פרטי הזמנה",
