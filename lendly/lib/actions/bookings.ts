@@ -17,11 +17,11 @@ export async function createReservedBooking(
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
     // Get listing and renter to calculate deposit
-    const listing = await prisma.listings.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { 
-        dailyRate: true, 
-        depositOverride: true,
+        pricePerDay: true, 
+        deposit: true,
         ownerId: true,
         category: true,
         owner: {
@@ -44,15 +44,15 @@ export async function createReservedBooking(
 
     // Calculate deposit using new algorithm
     const depositResult = await calculateDepositUtil({
-      dailyRate: listing.dailyRate,
+      dailyRate: listing.pricePerDay,
       days,
       category: listing.category,
       ownerTrustScore: listing.owner.trustScore,
       renterTrustScore: renter?.trustScore || 50,
-      depositOverride: listing.depositOverride,
+      depositOverride: listing.deposit,
     });
 
-    const depositRequired = depositResult.deposit;
+    const depositAmount = depositResult.deposit;
 
     // Set expiration to 12 hours from now
     const expiresAt = new Date();
@@ -65,8 +65,8 @@ export async function createReservedBooking(
         startDate,
         endDate,
         status: BookingStatus.RESERVED,
-        depositRequired,
-        insuranceAdded,
+        deposit: depositAmount,
+        insurance: insuranceAdded,
         expiresAt,
       },
       include: {
@@ -112,11 +112,11 @@ export async function createDraftBooking(
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
     // Get listing and renter to calculate deposit
-    const listing = await prisma.listings.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { 
-        dailyRate: true, 
-        depositOverride: true,
+        pricePerDay: true, 
+        deposit: true,
         category: true,
         owner: {
           select: {
@@ -138,15 +138,15 @@ export async function createDraftBooking(
 
     // Calculate deposit using new algorithm
     const depositResult = await calculateDepositUtil({
-      dailyRate: listing.dailyRate,
+      dailyRate: listing.pricePerDay,
       days,
       category: listing.category,
       ownerTrustScore: listing.owner.trustScore,
       renterTrustScore: renter?.trustScore || 50,
-      depositOverride: listing.depositOverride,
+      depositOverride: listing.deposit,
     });
 
-    const depositRequired = depositResult.deposit;
+    const depositAmount = depositResult.deposit;
 
     // Set expiration to 24 hours from now
     const expiresAt = new Date();
@@ -159,8 +159,8 @@ export async function createDraftBooking(
         startDate,
         endDate,
         status: BookingStatus.DRAFT,
-        depositRequired,
-        insuranceAdded,
+        deposit: depositAmount,
+        insurance: insuranceAdded,
         expiresAt,
       },
       include: {
@@ -399,7 +399,7 @@ export async function getBookingsForUser(userId: string) {
           select: {
             id: true,
             title: true,
-            dailyRate: true,
+            pricePerDay: true,
             ownerId: true,
             owner: {
               select: {

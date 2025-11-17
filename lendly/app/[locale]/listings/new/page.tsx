@@ -76,11 +76,18 @@ export default function CreateListingPage() {
 
     setIsLoading(true);
     try {
-      // In a real app, get from session
-      const ownerId = "stub-user-id";
+      // Get current user from session
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      
+      if (!data.user) {
+        toast.error("Please sign in to create a listing");
+        router.push("/auth/signin");
+        return;
+      }
 
       await createListing({
-        ownerId,
+        ownerId: data.user.id,
         title: formData.title,
         description: formData.description,
         category: formData.category,

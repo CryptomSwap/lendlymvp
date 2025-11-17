@@ -31,7 +31,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
   const otherPartyName = isOwner ? booking.renter.name : booking.listing.owner.name;
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6 pb-24">
+    <div className="w-full px-4 py-6 space-y-6 pb-24">
       <BookingDetail 
         booking={booking} 
         canReview={canReview}

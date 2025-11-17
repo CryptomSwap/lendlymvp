@@ -83,42 +83,42 @@ export function LocationInput() {
   };
 
   return (
-    <div className="px-4">
-      <div className="relative w-full">
-        {/* Location icon */}
+    <div className="w-full relative">
+      {/* Search bar - rounded-full card */}
+      <div className="w-full bg-white rounded-full shadow-sm px-4 py-3 flex items-center gap-2 focus-within:ring-2 focus-within:ring-[#00B3A0] transition-all duration-200 relative">
+        {/* Location icon - left side (RTL) */}
         <button
           type="button"
           onClick={handleGetLocation}
           disabled={isGettingLocation}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-[#009999] opacity-70 hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-shrink-0 text-[#009C8D] opacity-70 hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed z-10"
           aria-label="Get current location"
           style={{ transition: 'opacity 120ms ease-out' }}
         >
           {isGettingLocation ? (
-            <Loader2 className="animate-spin" style={{ width: '19px', height: '19px' }} />
+            <Loader2 className="animate-spin" style={{ width: '18px', height: '18px' }} />
           ) : (
-            <MapPin style={{ width: '19px', height: '19px', strokeWidth: 1.75 }} />
+            <MapPin style={{ width: '18px', height: '18px', strokeWidth: 1.75 }} />
           )}
         </button>
-        {/* Search icon */}
-        <div className="absolute right-12 top-1/2 -translate-y-1/2 z-10 text-[#009999] opacity-70 pointer-events-none">
-          <Search style={{ width: '19px', height: '19px', strokeWidth: 1.75 }} />
-        </div>
+        
+        {/* Input field */}
         <Input
           type="text"
           placeholder={locale === "he" ? "" : t("searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-[50px] pr-28 pl-4 rounded-[28px] bg-white border border-[#E6F3F3] shadow-[0_2px_8px_rgba(0,153,153,0.12)] placeholder:text-[#475569] text-[15px] focus:ring-2 focus:ring-[#009999] focus:ring-offset-0 focus:border-transparent focus:shadow-[0_4px_12px_rgba(0,153,153,0.2)] transition-all duration-200"
+          className="flex-1 h-auto bg-transparent border-0 shadow-none placeholder:text-gray-500 text-[14px] text-center focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200 relative z-10"
+          dir={locale === "he" ? "rtl" : "ltr"}
           style={{ 
             transition: 'all 200ms ease-out',
-            borderRadius: '28px'
           }}
         />
+        
         {/* Rotating placeholder overlay for Hebrew */}
         {locale === "he" && !searchQuery && (
           <div
-            className="absolute right-28 top-1/2 -translate-y-1/2 pointer-events-none text-[#475569] text-[15px] z-0 text-right"
+            className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[14px] z-0 text-center"
             dir="rtl"
             style={{
               opacity: placeholderOpacity,
@@ -128,6 +128,11 @@ export function LocationInput() {
             {hebrewPlaceholders[currentPlaceholderIndex]}...
           </div>
         )}
+        
+        {/* Search icon - right side (RTL) */}
+        <div className="flex-shrink-0 text-[#009C8D] opacity-70 pointer-events-none z-10">
+          <Search style={{ width: '18px', height: '18px', strokeWidth: 1.75 }} />
+        </div>
       </div>
     </div>
   );

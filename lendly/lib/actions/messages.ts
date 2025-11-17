@@ -11,9 +11,9 @@ export async function createDraftBookingWithMessage(
 ) {
   try {
     // Create a draft booking first
-    const listing = await prisma.listings.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { ownerId: true, dailyRate: true, depositOverride: true },
+      select: { ownerId: true, pricePerDay: true, deposit: true, category: true },
     });
 
     if (!listing) {
@@ -41,15 +41,15 @@ export async function createDraftBookingWithMessage(
 
         // Calculate deposit using new algorithm
         const depositResult = await calculateDepositUtil({
-          dailyRate: listing.dailyRate,
+          dailyRate: listing.pricePerDay,
           days,
           category: listing.category || "Other",
           ownerTrustScore: owner?.trustScore || 50,
           renterTrustScore: renter?.trustScore || 50,
-          depositOverride: listing.depositOverride,
+          depositOverride: listing.deposit,
         });
 
-        const depositRequired = depositResult.deposit;
+        const depositAmount = depositResult.deposit;
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
@@ -61,8 +61,8 @@ export async function createDraftBookingWithMessage(
         startDate,
         endDate,
         status: BookingStatus.DRAFT,
-        depositRequired,
-        insuranceAdded: false,
+        deposit: depositAmount,
+        insurance: false,
         expiresAt,
       },
     });

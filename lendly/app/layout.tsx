@@ -22,7 +22,10 @@ export default function RootLayout({
   // Locale-specific lang and dir are set via template.tsx
   return (
     <html suppressHydrationWarning>
-      <body className={`${heebo.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
+      <body 
+        className={`${heebo.variable} ${geistMono.variable} antialiased min-h-screen flex justify-center bg-gradient-to-b from-[#E8F8F5] to-[#F9FFFD]`} 
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useIsRTL } from "@/lib/utils/rtl";
+import { cn } from "@/lib/utils";
 
 export function PopularRentalsArea() {
   const t = useTranslations("common");
@@ -19,18 +20,22 @@ export function PopularRentalsArea() {
   // Loading state - 3 shimmering placeholders
   if (loading) {
     return (
-      <section className="px-4 pt-6 pb-4 relative" style={{ background: 'linear-gradient(to bottom, rgba(248,250,250,0.4) 0%, rgba(255,255,255,0) 100%)' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-4 flex items-center justify-between"
-        >
-          <h2 className="text-[19px] font-semibold text-[#0F172A]">
-            {t("popularRentals")}
-          </h2>
-        </motion.div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4">
+      <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+        {/* Header */}
+        <div className="px-3 mb-3">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between"
+            dir={isRTL ? "rtl" : "ltr"}
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              השכרות באיזורך
+            </h2>
+          </motion.div>
+        </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-3">
           {[1, 2, 3].map((i) => (
             <motion.div
               key={i}
@@ -53,17 +58,21 @@ export function PopularRentalsArea() {
   // Empty state
   if (listings.length === 0) {
     return (
-      <section className="px-4 pt-6 pb-4 relative" style={{ background: 'linear-gradient(to bottom, rgba(248,250,250,0.4) 0%, rgba(255,255,255,0) 100%)' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-4 flex items-center justify-between"
-        >
-          <h2 className="text-[19px] font-semibold text-[#0F172A]">
-            {t("popularRentals")}
-          </h2>
-        </motion.div>
+      <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+        {/* Header */}
+        <div className="px-3 mb-3">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between"
+            dir={isRTL ? "rtl" : "ltr"}
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              השכרות באיזורך
+            </h2>
+          </motion.div>
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -104,32 +113,37 @@ export function PopularRentalsArea() {
 
   // Listings carousel
   return (
-    <section className="px-4 pt-6 pb-4 relative" style={{ background: 'linear-gradient(to bottom, rgba(248,250,250,0.4) 0%, rgba(255,255,255,0) 100%)' }}>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mb-4 flex items-center justify-between"
-        dir={isRTL ? "rtl" : "ltr"}
-      >
-        <h2 className="text-[19px] font-semibold text-[#0F172A] text-center flex-1">
-          {t("popularRentals")}
-        </h2>
-        <Link href="/search" className={isRTL ? "order-first" : ""}>
-          <button 
-            className="flex items-center gap-1 text-[#0FA2A1] text-[13px] font-medium hover:opacity-80 transition-opacity duration-120"
-            style={{ 
-              fontSize: '12px',
-              transition: 'opacity 120ms ease-out'
-            }}
-          >
-            {t("seeAll")}
-            <ChevronIcon className="h-3 w-3" strokeWidth={2} />
-          </button>
-        </Link>
-      </motion.div>
+    <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+      {/* Header */}
+      <div className="px-3 mb-3">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between"
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          <h2 className="text-lg font-semibold text-gray-900">
+            השכרות באיזורך
+          </h2>
+          <Link href="/search">
+            <button 
+              className={cn(
+                "flex items-center gap-1 text-xs text-[#00A596] font-medium hover:opacity-80 transition-opacity duration-120 active:scale-[0.97]",
+                isRTL && "flex-row-reverse"
+              )}
+              style={{ 
+                transition: 'opacity 120ms ease-out, transform 120ms ease-out'
+              }}
+            >
+              {t("seeAll")}
+              <ChevronIcon className="h-3 w-3" strokeWidth={2} />
+            </button>
+          </Link>
+        </motion.div>
+      </div>
       
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-3">
         {listings.map((listing, index) => (
           <motion.div
             key={listing.id}
@@ -139,7 +153,7 @@ export function PopularRentalsArea() {
               duration: 0.3,
               delay: index * 0.012, // 12ms stagger (between 10-15ms)
             }}
-            className="flex-shrink-0 snap-start"
+            className="flex-shrink-0 snap-center"
           >
             <ListingCard listing={listing} />
           </motion.div>

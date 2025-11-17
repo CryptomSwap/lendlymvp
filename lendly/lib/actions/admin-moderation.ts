@@ -9,7 +9,7 @@ export async function getPendingListings(userId: string) {
   try {
     // In a real app, you'd have a status field on listings
     // For now, we'll return all listings (you can add a status field later)
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       where: {
         // Add status filter when you add status field
       },
@@ -74,7 +74,7 @@ export async function getDisputes(userId: string) {
               select: {
                 id: true,
                 title: true,
-                dailyRate: true,
+                pricePerDay: true,
               },
             },
             renter: {
@@ -213,8 +213,8 @@ export async function getAdminMetrics(userId: string) {
       totalDisputes,
       openDisputes,
     ] = await Promise.all([
-      prisma.listings.count(),
-      prisma.listings.count({
+      prisma.listing.count(),
+      prisma.listing.count({
         // In a real app, filter by status = ACTIVE
       }),
       prisma.booking.count(),

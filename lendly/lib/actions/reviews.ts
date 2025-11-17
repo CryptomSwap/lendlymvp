@@ -98,7 +98,7 @@ async function updateListingRating(listingId: string) {
     });
 
     if (reviews.length === 0) {
-      await prisma.listings.update({
+      await prisma.listing.update({
         where: { id: listingId },
         data: {
           ratingAvg: 0,
@@ -112,7 +112,7 @@ async function updateListingRating(listingId: string) {
     const averageRating = totalRating / reviews.length;
     const count = reviews.length;
 
-    await prisma.listings.update({
+    await prisma.listing.update({
       where: { id: listingId },
       data: {
         ratingAvg: averageRating,

@@ -1,4 +1,35 @@
-import { PrismaClient, Role } from "@prisma/client";
+/**
+ * Lendly Mock Data Seed Script
+ * 
+ * This script generates comprehensive mock data for end-to-end testing of the Lendly app.
+ * It creates realistic users, listings, bookings, reviews, and messages that simulate
+ * a production-like environment.
+ * 
+ * HOW TO RUN:
+ *   npm run db:seed
+ *   or
+ *   npx tsx prisma/seed.ts
+ * 
+ * DATA STRUCTURE:
+ *   - 55 users (mix of renters and lenders, Hebrew + English names)
+ *   - 95 listings (distributed across categories and cities, varied rating profiles)
+ *   - 65 bookings (various statuses: upcoming, active, completed, disputed, cancelled)
+ *   - 40 reviews (for completed bookings, mixed ratings)
+ *   - 25 conversations with 3-10 messages each
+ *   - Disputes for disputed bookings
+ * 
+ * COVERED FLOWS:
+ *   - Renter dashboard: upcoming, in-progress, past rentals
+ *   - Lender dashboard: active listings, items rented out, pending requests
+ *   - Search: by city, category, price, rating
+ *   - Listing detail: highly rated, few ratings, new listings
+ *   - Booking flow: with/without insurance, high/low deposits
+ *   - Reviews: user ratings and recent reviews
+ *   - Chat: conversations before, during, and after rentals
+ */
+
+import { PrismaClient, BookingStatus, ListingStatus, Role, DisputeType, DisputeStatus } from "@prisma/client";
+import { calculateInsuranceQuote, type ItemCategory } from "../lib/insurance/riskEngine";
 
 const prisma = new PrismaClient();
 
@@ -7,1528 +38,816 @@ function serializeRoles(roles: Role[]): string {
   return JSON.stringify(roles);
 }
 
+// Helper to get random element from array
+function randomElement<T>(array: T[]): T {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+// Helper to get random number in range
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Helper to get random float in range
+function randomFloat(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
+}
+
+// Helper to get random date in range
+function randomDate(start: Date, end: Date): Date {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+// Helper to get date N days from now
+function daysFromNow(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+// Helper to get date N days ago
+function daysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
+// Hebrew first names
+const hebrewFirstNames = [
+  "אלון", "שרה", "דוד", "מאיה", "תום", "נועה", "יואב", "מיכל", "עמית", "טל",
+  "רונן", "יעל", "אור", "ליאור", "דני", "רותם", "איתי", "שירה", "אורן", "עדי",
+  "רועי", "חן", "אליאור", "מור", "ארז", "ליה", "אורי", "ניב", "אליעזר", "רומי",
+  "יונתן", "ענבל", "אליה", "מיקה", "איתן", "ליאן", "אלירן", "שי", "אלינור", "רינת"
+];
+
+// Hebrew last names
+const hebrewLastNames = [
+  "כהן", "לוי", "ישראלי", "אברהם", "רוזן", "דוד", "מזרחי", "בן דוד", "עזרא", "חדד",
+  "שלום", "יעקב", "משה", "אליהו", "יוסף", "דניאל", "שמעון", "רחמים", "יצחק", "אהרון"
+];
+
+// English first names (for bilingual testing)
+const englishFirstNames = [
+  "Alex", "Sarah", "David", "Maya", "Tom", "Noa", "John", "Rachel", "Michael", "Emma"
+];
+
+// English last names
+const englishLastNames = [
+  "Cohen", "Levy", "Smith", "Johnson", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor"
+];
+
+// Israeli cities with coordinates
+const cities = [
+  { name: "תל אביב", lat: 32.0853, lng: 34.7818 },
+  { name: "ירושלים", lat: 31.7683, lng: 35.2137 },
+  { name: "חיפה", lat: 32.7940, lng: 34.9896 },
+  { name: "רמת גן", lat: 32.0820, lng: 34.8138 },
+  { name: "גוש דן", lat: 32.0853, lng: 34.7818 },
+  { name: "חולון", lat: 32.0103, lng: 34.7792 },
+  { name: "באר שבע", lat: 31.2530, lng: 34.7915 },
+  { name: "אשדוד", lat: 31.8044, lng: 34.6553 },
+  { name: "נתניה", lat: 32.3320, lng: 34.8550 },
+  { name: "הרצליה", lat: 32.1644, lng: 34.8447 }
+];
+
+// Categories
+const categories = [
+  "CAMERA", "DRONE", "TOOLS", "DJ_GEAR", "CAMPING", "SPORT", "MUSIC", "OTHER"
+] as const;
+
+// Category-specific item templates
+const itemTemplates: Record<string, { titles: string[]; descriptions: string[]; priceRange: [number, number] }> = {
+  CAMERA: {
+    titles: [
+      "מצלמת DSLR קנון 5D Mark IV",
+      "מצלמת מירורלס סוני A7III",
+      "מצלמת אקשן GoPro Hero 12",
+      "מצלמת קומפקטית קנון G7X",
+      "מצלמת וידאו Panasonic GH5"
+    ],
+    descriptions: [
+      "מצלמה מקצועית עם חיישן full frame, מצוינת לצילומי פורטרטים ונופים",
+      "מצלמה קומפקטית עם ביצועים מעולים, מתאימה לצילומי וידאו וצילום סטילס",
+      "מצלמת אקשן עמידה למים, מושלמת לספורט אקסטרים וצילום תת-ימי",
+      "מצלמה קומפקטית עם זום אופטי, נוחה לנשיאה ולצילומי יומיום",
+      "מצלמת וידאו מקצועית עם צילום 4K, מתאימה ליצירת תוכן"
+    ],
+    priceRange: [150, 500]
+  },
+  DRONE: {
+    titles: [
+      "רחפן DJI Mini 3 Pro",
+      "רחפן DJI Mavic Air 2",
+      "רחפן DJI Phantom 4",
+      "רחפן DJI Mini 2",
+      "רחפן DJI FPV"
+    ],
+    descriptions: [
+      "רחפן קומפקטי עם מצלמה 4K, מושלם לצילומי אוויר מקצועיים",
+      "רחפן מתקדם עם טווח טיסה ארוך וצילום באיכות גבוהה",
+      "רחפן מקצועי עם מצלמה משופרת, מתאים לצילומי קולנוע",
+      "רחפן קל ונוח לשימוש, מושלם למתחילים",
+      "רחפן FPV עם מצלמת VR, חווית טיסה מהנה"
+    ],
+    priceRange: [200, 600]
+  },
+  TOOLS: {
+    titles: [
+      "מקדחה אלחוטית Bosch",
+      "מסור עגול Makita",
+      "מברגה חשמלית DeWalt",
+      "משחזת זוויתית Bosch",
+      "מפלס לייזר Leica"
+    ],
+    descriptions: [
+      "מקדחה חזקה עם סוללה נטענת, מתאימה לעבודות בית וגינה",
+      "מסור מקצועי עם להב חד, מושלם לחיתוך עץ ומתכת",
+      "מברגה קומפקטית עם מומנט גבוה, נוחה לעבודות שונות",
+      "משחזת עם דיסקים להחלפה, מתאימה לשיוף וליטוש",
+      "מפלס לייזר מדויק, מושלם לעבודות בנייה והתקנה"
+    ],
+    priceRange: [50, 200]
+  },
+  DJ_GEAR: {
+    titles: [
+      "מיקסר DJ Pioneer DDJ-1000",
+      "רמקול JBL EON615",
+      "מיקרופון Shure SM58",
+      "קונסולת DJ Numark",
+      "סאבוופר Yamaha"
+    ],
+    descriptions: [
+      "מיקסר DJ מקצועי עם 4 ערוצים, מושלם לאירועים",
+      "רמקול פעיל עם הספק גבוה, מתאים לאירועים חיצוניים",
+      "מיקרופון דינמי איכותי, מתאים לשירה והופעות",
+      "קונסולה מתקדמת עם אפקטים, נוחה לשימוש",
+      "סאבוופר חזק עם בס עמוק, מושלם למסיבות"
+    ],
+    priceRange: [100, 400]
+  },
+  CAMPING: {
+    titles: [
+      "אוהל MSR Hubba Hubba",
+      "שק שינה North Face",
+      "פרימוס קמפינג",
+      "כיסא קמפינג מתקפל",
+      "קירור תרמי Coleman"
+    ],
+    descriptions: [
+      "אוהל קל משקל לשתי אנשים, עמיד למים ונוח להקמה",
+      "שק שינה חם ומבודד, מתאים לטמפרטורות נמוכות",
+      "פרימוס גז קומפקטי, מושלם לבישול בקמפינג",
+      "כיסא נוח וקומפקטי, מתקפל בקלות",
+      "קירור מבודד תרמית, שומר על קור למשך ימים"
+    ],
+    priceRange: [30, 120]
+  },
+  SPORT: {
+    titles: [
+      "אופני הרים Trek",
+      "גלשן גלים",
+      "ציוד סקי",
+      "מגלשיים Rollerblade",
+      "ציוד יוגה"
+    ],
+    descriptions: [
+      "אופני הרים איכותיים עם הילוכים, מושלמים לטיולים",
+      "גלשן גלים מקצועי, מתאים לגולשים מתקדמים",
+      "ציוד סקי מלא כולל מגלשיים ומקלות, במצב מעולה",
+      "מגלשיים רולרבלייד נוחות, מתאימות לכל הגילאים",
+      "ציוד יוגה מלא כולל מזרן, בלוקים וחגורה"
+    ],
+    priceRange: [40, 180]
+  },
+  MUSIC: {
+    titles: [
+      "גיטרה אקוסטית Yamaha",
+      "קלידים Casio",
+      "תופים אלקטרוניים Roland",
+      "כינור",
+      "סקסופון"
+    ],
+    descriptions: [
+      "גיטרה אקוסטית איכותית עם צליל עשיר, במצב מעולה",
+      "קלידים דיגיטליים עם 88 קלידים, מתאימים למתחילים ומתקדמים",
+      "תופים אלקטרוניים עם חיישנים רגישים, כולל מטרונום",
+      "כינור קלאסי איכותי, מתאים לנגינה מקצועית",
+      "סקסופון טנור במצב מעולה, כולל תיק נשיאה"
+    ],
+    priceRange: [60, 250]
+  },
+  OTHER: {
+    titles: [
+      "מקרן BenQ",
+      "מסך גדול 75 אינץ'",
+      "מצלמת אבטחה",
+      "מכונת קפה מקצועית",
+      "מכשיר ניקוי קיטור"
+    ],
+    descriptions: [
+      "מקרן Full HD עם בהירות גבוהה, מושלם להקרנות",
+      "מסך טלוויזיה גדול עם רזולוציה 4K, במצב מעולה",
+      "מצלמת אבטחה עם חיבור WiFi, כולל הקלטה",
+      "מכונת אספרסו מקצועית, מושלמת לחובבי קפה",
+      "מכשיר ניקוי קיטור רב עוצמה, מתאים לכל המשטחים"
+    ],
+    priceRange: [80, 300]
+  }
+};
+
+// Review comments in Hebrew
+const reviewComments = [
+  "מוצר מעולה, בדיוק כמו שתואר. בעלים מקצועי ומסביר פנים.",
+  "הכל עבד מצוין, מומלץ בחום!",
+  "שירות מהיר ואמין, המוצר במצב מעולה.",
+  "חוויה טובה, בעלים זמין ומועיל.",
+  "מוצר איכותי, שירות מקצועי. אמליץ לחברים.",
+  "הכל תקין, בעלים אדיב. תודה!",
+  "מוצר מעולה במחיר הוגן, שירות מצוין.",
+  "חוויה חיובית, בעלים מקצועי ואמין.",
+  "מוצר במצב טוב, בעלים זמין ומועיל.",
+  "שירות מהיר, מוצר איכותי. מומלץ!",
+  "חוויה טובה, בעלים מקצועי ומסביר פנים.",
+  "מוצר מעולה, בדיוק כמו שתואר. תודה!",
+  "שירות מצוין, מוצר איכותי. אמליץ.",
+  "הכל עבד מצוין, בעלים אדיב ומועיל.",
+  "מוצר במצב מעולה, שירות מקצועי.",
+  "חוויה חיובית, בעלים אמין וזמין.",
+  "מוצר איכותי במחיר הוגן, שירות מצוין.",
+  "הכל תקין, בעלים מקצועי. תודה!",
+  "מוצר מעולה, שירות מהיר ואמין.",
+  "חוויה טובה, בעלים מסביר פנים ומועיל."
+];
+
+// Message templates in Hebrew - categorized by conversation phase
+const messageTemplates = {
+  initial: [
+    "שלום, אני מעוניין לשכור את {item}. מתי זה זמין?",
+    "היי, מתי נוכל להיפגש לאיסוף?",
+    "שלום, האם המוצר זמין לתאריכים {dates}?",
+    "היי, יש לי שאלה לגבי {item} - האם הוא כולל...?",
+    "שלום, אני מעוניין לשכור את {item} למשך {days} ימים."
+  ],
+  pickup: [
+    "אני אגיע בעוד חצי שעה, זה בסדר?",
+    "מושלם, נתראה מחר בשעה 10.",
+    "איפה נוח לך שנפגש לאיסוף?",
+    "אני בדרך, אהיה בעוד 20 דקות.",
+    "תודה, נתראה בשעה 14:00."
+  ],
+  during: [
+    "המוצר עובד מצוין, תודה רבה.",
+    "יש לי שאלה קטנה - איך משתמשים ב...?",
+    "הכל תקין, המוצר במצב מעולה.",
+    "תודה על העזרה!",
+    "המוצר עובד בדיוק כמו שציפיתי."
+  ],
+  return: [
+    "הכל תקין, אחזיר מחר בבוקר.",
+    "מתי נוח לך שאחזיר את המוצר?",
+    "אני אחזיר את המוצר היום אחר הצהריים.",
+    "תודה רבה! המוצר מעולה.",
+    "המוצר במצב מעולה, אחזיר אותו היום."
+  ],
+  after: [
+    "תודה על השירות המהיר!",
+    "חוויה מעולה, אמליץ לחברים.",
+    "תודה רבה, הכל היה מושלם.",
+    "שירות מקצועי, תודה!",
+    "מוצר מעולה, תודה על הכל."
+  ]
+};
+
+/**
+ * Calculate deposit and insurance using the risk engine
+ */
+function calculateDepositAndInsurance(
+  listing: { pricePerDay: number; category: string },
+  renter: { trustScore: number; totalRentalsAsRenter: number },
+  owner: { trustScore: number },
+  rentalDays: number
+): { deposit: number; insuranceFee: number; insuranceAdded: boolean } {
+  try {
+    // Map category to ItemCategory type
+    const categoryMap: Record<string, ItemCategory> = {
+      CAMERA: "camera",
+      DRONE: "drone",
+      TOOLS: "tools",
+      DJ_GEAR: "dj",
+      CAMPING: "camping",
+      SPORT: "sports",
+      MUSIC: "other",
+      OTHER: "other"
+    };
+
+    const itemCategory = categoryMap[listing.category] || "other";
+    const itemValue = listing.pricePerDay * 20; // Estimate item value
+
+    const quote = calculateInsuranceQuote({
+      itemId: "seed",
+      itemCategory,
+      itemValue,
+      dailyPrice: listing.pricePerDay,
+      rentalDays,
+      renterTrustScore: renter.trustScore,
+      ownerTrustScore: owner.trustScore,
+      renterCompletedRentals: renter.totalRentalsAsRenter,
+      renterIncidents: 0,
+      itemIncidents: 0,
+      locationRiskIndex: randomFloat(0.1, 0.5)
+    });
+
+    // Randomly decide if insurance was added (70% chance)
+    const insuranceAdded = Math.random() > 0.3;
+
+    return {
+      deposit: quote.securityDeposit,
+      insuranceFee: insuranceAdded ? quote.protectionFee : 0,
+      insuranceAdded
+    };
+  } catch (error) {
+    // Fallback calculation if risk engine fails
+    const baseDeposit = listing.pricePerDay * 2;
+    const insuranceAdded = Math.random() > 0.3;
+    return {
+      deposit: Math.round(baseDeposit / 10) * 10,
+      insuranceFee: insuranceAdded ? Math.round(listing.pricePerDay * 0.1) : 0,
+      insuranceAdded
+    };
+  }
+}
+
 async function main() {
-  // Create or get 3 users
-  const user1 = await prisma.user.upsert({
-    where: { email: "alon@example.com" },
-    update: {
-      roles: serializeRoles(["USER"]),
-    },
-    create: {
-      name: "אלון כהן",
-      email: "alon@example.com",
-      phone: "+972-50-123-4567",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 85,
-      isVerified: true,
-    },
-  });
+  console.log("🌱 Starting seed...");
 
-  const user2 = await prisma.user.upsert({
-    where: { email: "sara@example.com" },
-    update: {},
-    create: {
-      name: "שרה לוי",
-      email: "sara@example.com",
-      phone: "+972-50-234-5678",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 92,
-      isVerified: true,
-    },
-  });
+  // Clear existing data
+  console.log("🧹 Clearing existing data...");
+  await prisma.message.deleteMany();
+  await prisma.thread.deleteMany();
+  await prisma.review.deleteMany();
+  await prisma.checklist.deleteMany();
+  await prisma.dispute.deleteMany();
+  await prisma.booking.deleteMany();
+  await prisma.listing.deleteMany();
+  await prisma.user.deleteMany();
 
-  const user3 = await prisma.user.upsert({
-    where: { email: "david@example.com" },
-    update: {},
-    create: {
-      name: "דוד ישראלי",
-      email: "david@example.com",
-      phone: "+972-50-345-6789",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 78,
-      isVerified: false,
-    },
-  });
+  // Generate Users (55 users)
+  console.log("👥 Creating users...");
+  const users = [];
+  for (let i = 0; i < 55; i++) {
+    const isEnglish = i < 5; // First 5 users have English names
+    const firstName = isEnglish
+      ? randomElement(englishFirstNames)
+      : randomElement(hebrewFirstNames);
+    const lastName = isEnglish
+      ? randomElement(englishLastNames)
+      : randomElement(hebrewLastNames);
+    const fullName = `${firstName} ${lastName}`;
 
-  const user4 = await prisma.user.upsert({
-    where: { email: "maya@example.com" },
-    update: {},
-    create: {
-      name: "מאיה אברהם",
-      email: "maya@example.com",
-      phone: "+972-50-456-7890",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 95,
-      isVerified: true,
-    },
-  });
+    const city = randomElement(cities);
+    const trustScore = randomInt(40, 100);
+    const isVerified = trustScore > 70 || Math.random() > 0.3;
+    const totalRentalsAsRenter = randomInt(0, 25);
+    const totalRentalsAsLender = randomInt(0, 15);
 
-  const user5 = await prisma.user.upsert({
-    where: { email: "tom@example.com" },
-    update: {},
-    create: {
-      name: "תום רוזן",
-      email: "tom@example.com",
-      phone: "+972-50-567-8901",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 88,
-      isVerified: true,
-    },
-  });
-
-  const user6 = await prisma.user.upsert({
-    where: { email: "noa@example.com" },
-    update: {},
-    create: {
-      name: "נועה דוד",
-      email: "noa@example.com",
-      phone: "+972-50-678-9012",
-      avatar: "/person.png",
-      roles: serializeRoles(["USER"]),
-      trustScore: 82,
-      isVerified: false,
-    },
-  });
-
-  const listings = [
-    // Premium Cameras
-    {
-      ownerId: user1.id,
-      title: "Canon EOS R5 - Professional Camera",
-      description: "High-end mirrorless camera perfect for professional photography. Includes 24-70mm lens, battery, and charger. Excellent condition, barely used.",
-      category: "cameras",
-      dailyRate: 150,
-      depositOverride: 2000,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 12,
-    },
-    {
-      ownerId: user3.id,
-      title: "Sony A7III Mirrorless Camera",
-      description: "Full-frame mirrorless camera with excellent low-light performance. Includes 50mm f/1.8 lens, two batteries, and memory card.",
-      category: "cameras",
-      dailyRate: 120,
-      depositOverride: 1800,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 25,
-    },
-    {
-      ownerId: user4.id,
-      title: "Nikon Z6 II with 24-70mm Lens",
-      description: "Professional mirrorless camera with 4K video capabilities. Kit includes lens, battery grip, and professional bag.",
-      category: "cameras",
-      dailyRate: 140,
-      depositOverride: 1900,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user5.id,
-      title: "Fujifilm X-T4 Camera Body",
-      description: "Compact mirrorless camera perfect for travel photography. Includes battery, charger, and camera strap.",
-      category: "cameras",
-      dailyRate: 90,
-      depositOverride: 1200,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 15,
-    },
-    {
-      ownerId: user2.id,
-      title: "Canon 5D Mark IV DSLR",
-      description: "Professional full-frame DSLR camera. Perfect for weddings and events. Includes 24-105mm lens.",
-      category: "cameras",
-      dailyRate: 130,
-      depositOverride: 1700,
-      minDays: 3,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: false,
-      ratingAvg: 4.5,
-      ratingCount: 6,
-    },
-    // Drones
-    {
-      ownerId: user1.id,
-      title: "DJI Mavic 3 Pro Drone",
-      description: "Latest DJI drone with 4K video and obstacle avoidance. Perfect for aerial photography. Includes 3 batteries, charger, and carrying case.",
-      category: "drones",
-      dailyRate: 200,
-      depositOverride: 3000,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: false,
-      ratingAvg: 4.9,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user1.id,
-      title: "DJI Mini 3 Drone",
-      description: "Compact and lightweight drone, perfect for travel. Great for beginners and professionals alike. Includes 2 batteries and controller.",
-      category: "drones",
-      dailyRate: 100,
-      depositOverride: 1500,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png"]),
-      locationText: "Netanya, Israel",
-      lat: 32.3320,
-      lng: 34.8599,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 18,
-    },
-    {
-      ownerId: user4.id,
-      title: "DJI Air 2S Drone",
-      description: "Mid-range drone with 5.4K video. Excellent for real estate and event photography. Includes extra propellers and landing pad.",
-      category: "drones",
-      dailyRate: 150,
-      depositOverride: 2200,
-      minDays: 2,
-      photos: JSON.stringify(["/drone.png", "/drone.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 11,
-    },
-    {
-      ownerId: user6.id,
-      title: "DJI Phantom 4 Pro",
-      description: "Professional drone with mechanical shutter. Perfect for commercial photography. Includes hard case and multiple batteries.",
-      category: "drones",
-      dailyRate: 180,
-      depositOverride: 2800,
-      minDays: 3,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Ashdod, Israel",
-      lat: 31.8044,
-      lng: 34.6553,
-      instantBook: false,
-      ratingAvg: 4.6,
-      ratingCount: 5,
-    },
-    // Tools
-    {
-      ownerId: user2.id,
-      title: "Professional Power Drill Set",
-      description: "Complete power tool set with drill, impact driver, and various bits. Great for home projects. Includes carrying case.",
-      category: "tools",
-      dailyRate: 45,
-      depositOverride: 500,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 15,
-    },
-    {
-      ownerId: user3.id,
-      title: "Heavy Duty Circular Saw",
-      description: "Professional circular saw with laser guide. Perfect for cutting wood, metal, and tiles. Includes safety equipment.",
-      category: "tools",
-      dailyRate: 55,
-      depositOverride: 600,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png"]),
-      locationText: "Beer Sheva, Israel",
-      lat: 31.2530,
-      lng: 34.7915,
-      instantBook: true,
-      ratingAvg: 4.4,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user5.id,
-      title: "Complete Home Renovation Tool Kit",
-      description: "Everything for home renovation: hammer drill, angle grinder, jigsaw, and more. Professional grade tools.",
-      category: "tools",
-      dailyRate: 75,
-      depositOverride: 800,
-      minDays: 2,
-      photos: JSON.stringify(["/drill.png", "/drill.png", "/drill.png"]),
-      locationText: "Petah Tikva, Israel",
-      lat: 32.0889,
-      lng: 34.8564,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 12,
-    },
-    {
-      ownerId: user6.id,
-      title: "Cordless Impact Wrench Set",
-      description: "High-torque impact wrench for automotive work. Includes multiple socket sizes and battery charger.",
-      category: "tools",
-      dailyRate: 50,
-      depositOverride: 550,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Rishon LeZion, Israel",
-      lat: 31.9730,
-      lng: 34.7925,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 7,
-    },
-    {
-      ownerId: user1.id,
-      title: "Professional Tile Cutter",
-      description: "Electric tile cutter with water cooling system. Perfect for bathroom and kitchen renovations.",
-      category: "tools",
-      dailyRate: 60,
-      depositOverride: 700,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.3,
-      ratingCount: 4,
-    },
-    // DJ Gear
-    {
-      ownerId: user2.id,
-      title: "Pioneer DJ Controller DDJ-1000",
-      description: "Professional 4-channel DJ controller with full-size jog wheels. Perfect for events. Includes USB cable and carrying case.",
-      category: "djGear",
-      dailyRate: 120,
-      depositOverride: 1500,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 10,
-    },
-    {
-      ownerId: user4.id,
-      title: "Pioneer CDJ-2000NXS2 Players",
-      description: "Professional CDJ players with Rekordbox support. Includes two players and mixer. Perfect for clubs and events.",
-      category: "djGear",
-      dailyRate: 250,
-      depositOverride: 4000,
-      minDays: 3,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 4.9,
-      ratingCount: 6,
-    },
-    {
-      ownerId: user5.id,
-      title: "Numark Mixtrack Pro 3",
-      description: "Entry-level DJ controller perfect for beginners. Includes software license and tutorial videos.",
-      category: "djGear",
-      dailyRate: 80,
-      depositOverride: 900,
-      minDays: 1,
-      photos: JSON.stringify(["/ladder.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 13,
-    },
-    {
-      ownerId: user6.id,
-      title: "Allen & Heath Xone:92 Mixer",
-      description: "Professional 4-channel analog mixer with high-quality filters. Perfect for techno and house music.",
-      category: "djGear",
-      dailyRate: 100,
-      depositOverride: 1200,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 9,
-    },
-    // Camping Gear
-    {
-      ownerId: user3.id,
-      title: "4-Person Camping Tent",
-      description: "Spacious waterproof tent with rainfly. Easy setup, perfect for weekend camping trips. Includes groundsheet and pegs.",
-      category: "camping",
-      dailyRate: 60,
-      depositOverride: 800,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Eilat, Israel",
-      lat: 29.5577,
-      lng: 34.9519,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 20,
-    },
-    {
-      ownerId: user2.id,
-      title: "Complete Camping Gear Set",
-      description: "Everything you need: tent, sleeping bags, camping stove, cooler, and more. Perfect for a week-long trip.",
-      category: "camping",
-      dailyRate: 80,
-      depositOverride: 1000,
-      minDays: 3,
-      photos: JSON.stringify(["/ladder.png", "/shnork.png", "/ladder.png"]),
-      locationText: "Beer Sheva, Israel",
-      lat: 31.2530,
-      lng: 34.7915,
-      instantBook: false,
-      ratingAvg: 4.6,
-      ratingCount: 14,
-    },
-    {
-      ownerId: user3.id,
-      title: "Snorkeling Gear Set",
-      description: "Complete snorkeling set with mask, fins, and snorkel. Perfect for Red Sea diving. All sizes available.",
-      category: "camping",
-      dailyRate: 50,
-      depositOverride: 400,
-      minDays: 1,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png"]),
-      locationText: "Eilat, Israel",
-      lat: 29.5577,
-      lng: 34.9519,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 11,
-    },
-    {
-      ownerId: user4.id,
-      title: "6-Person Family Camping Tent",
-      description: "Large family tent with separate rooms. Waterproof and wind-resistant. Perfect for extended camping trips.",
-      category: "camping",
-      dailyRate: 70,
-      depositOverride: 900,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png"]),
-      locationText: "Tiberias, Israel",
-      lat: 32.7959,
-      lng: 35.5308,
-      instantBook: true,
-      ratingAvg: 4.4,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user5.id,
-      title: "Portable Camping Stove & Cookware",
-      description: "Complete cooking setup for camping: gas stove, pots, pans, and utensils. Everything you need for outdoor cooking.",
-      category: "camping",
-      dailyRate: 40,
-      depositOverride: 300,
-      minDays: 1,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png", "/shnork.png"]),
-      locationText: "Netanya, Israel",
-      lat: 32.3320,
-      lng: 34.8599,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 16,
-    },
-    {
-      ownerId: user6.id,
-      title: "Hiking Backpack & Gear",
-      description: "60L hiking backpack with sleeping bag, mat, and hiking poles. Perfect for day trips and overnight hikes.",
-      category: "camping",
-      dailyRate: 55,
-      depositOverride: 500,
-      minDays: 1,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Zichron Yaakov, Israel",
-      lat: 32.5694,
-      lng: 34.9500,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 7,
-    },
-    // Sports Equipment
-    {
-      ownerId: user1.id,
-      title: "Tennis Racket Pro",
-      description: "Professional tennis racket with premium strings. Perfect for competitive play. Includes racket cover and extra strings.",
-      category: "sports",
-      dailyRate: 35,
-      depositOverride: 300,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 7,
-    },
-    {
-      ownerId: user2.id,
-      title: "Professional Badminton Set",
-      description: "Complete badminton set with rackets, shuttlecocks, and net. Perfect for family fun or training.",
-      category: "sports",
-      dailyRate: 30,
-      depositOverride: 250,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 5,
-    },
-    {
-      ownerId: user4.id,
-      title: "Table Tennis Set",
-      description: "Portable table tennis set with paddles, balls, and net. Great for indoor entertainment.",
-      category: "sports",
-      dailyRate: 40,
-      depositOverride: 350,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png", "/racket.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user5.id,
-      title: "Basketball Hoop & Ball",
-      description: "Portable basketball hoop with official size ball. Perfect for driveway or park games.",
-      category: "sports",
-      dailyRate: 45,
-      depositOverride: 400,
-      minDays: 2,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: false,
-      ratingAvg: 4.4,
-      ratingCount: 3,
-    },
-    {
-      ownerId: user6.id,
-      title: "Soccer Goal & Equipment",
-      description: "Portable soccer goal with balls and cones. Perfect for practice sessions and kids' games.",
-      category: "sports",
-      dailyRate: 50,
-      depositOverride: 450,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 6,
-    },
-    // Additional listings for variety
-    {
-      ownerId: user1.id,
-      title: "GoPro Hero 11 Black",
-      description: "Action camera with 5.3K video and HyperSmooth stabilization. Perfect for sports and adventures. Includes mounts and accessories.",
-      category: "cameras",
-      dailyRate: 70,
-      depositOverride: 800,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 22,
-    },
-    {
-      ownerId: user3.id,
-      title: "Canon EF 70-200mm f/2.8 Lens",
-      description: "Professional telephoto lens perfect for sports and wildlife photography. Excellent condition, includes lens hood and case.",
-      category: "cameras",
-      dailyRate: 85,
-      depositOverride: 1500,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 10,
-    },
-    {
-      ownerId: user4.id,
-      title: "DJI Osmo Action Camera",
-      description: "Dual-screen action camera with 4K HDR video. Great alternative to GoPro. Includes waterproof housing.",
-      category: "cameras",
-      dailyRate: 60,
-      depositOverride: 700,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user2.id,
-      title: "Autel EVO Lite+ Drone",
-      description: "Professional drone with 6K video and 40-minute flight time. Includes 3 batteries and hard case.",
-      category: "drones",
-      dailyRate: 170,
-      depositOverride: 2600,
-      minDays: 2,
-      photos: JSON.stringify(["/drone.png", "/drone.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 4,
-    },
-    {
-      ownerId: user5.id,
-      title: "Parrot Anafi Drone",
-      description: "Compact foldable drone with 4K HDR video. Perfect for travel photography. Includes carrying case.",
-      category: "drones",
-      dailyRate: 110,
-      depositOverride: 1800,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png"]),
-      locationText: "Netanya, Israel",
-      lat: 32.3320,
-      lng: 34.8599,
-      instantBook: true,
-      ratingAvg: 4.4,
-      ratingCount: 7,
-    },
-    {
-      ownerId: user6.id,
-      title: "Electric Chainsaw",
-      description: "Cordless electric chainsaw with battery and charger. Perfect for tree trimming and firewood. Includes safety gear.",
-      category: "tools",
-      dailyRate: 65,
-      depositOverride: 750,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Beer Sheva, Israel",
-      lat: 31.2530,
-      lng: 34.7915,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 6,
-    },
-    {
-      ownerId: user1.id,
-      title: "Pressure Washer",
-      description: "High-pressure washer perfect for cleaning driveways, decks, and vehicles. Includes various nozzles and extension wand.",
-      category: "tools",
-      dailyRate: 55,
-      depositOverride: 650,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 11,
-    },
-    {
-      ownerId: user3.id,
-      title: "Roland DJ-808 Controller",
-      description: "All-in-one DJ controller with built-in drum machine. Perfect for live performances. Includes software and cables.",
-      category: "djGear",
-      dailyRate: 140,
-      depositOverride: 1800,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 5,
-    },
-    {
-      ownerId: user4.id,
-      title: "Traktor Kontrol S4 MK3",
-      description: "Professional 4-channel DJ controller with motorized platters. Includes Traktor Pro software license.",
-      category: "djGear",
-      dailyRate: 130,
-      depositOverride: 1700,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user5.id,
-      title: "Inflatable Kayak Set",
-      description: "2-person inflatable kayak with paddles and pump. Perfect for river and lake adventures. Easy to transport.",
-      category: "camping",
-      dailyRate: 90,
-      depositOverride: 1100,
-      minDays: 2,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png", "/shnork.png", "/shnork.png"]),
-      locationText: "Tiberias, Israel",
-      lat: 32.7959,
-      lng: 35.5308,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user6.id,
-      title: "Portable Generator",
-      description: "2000W portable generator perfect for camping and power outages. Includes fuel can and extension cord.",
-      category: "camping",
-      dailyRate: 85,
-      depositOverride: 950,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Ashdod, Israel",
-      lat: 31.8044,
-      lng: 34.6553,
-      instantBook: false,
-      ratingAvg: 4.5,
-      ratingCount: 5,
-    },
-    {
-      ownerId: user2.id,
-      title: "Golf Club Set",
-      description: "Complete golf club set with bag, driver, irons, and putter. Perfect for weekend golfers.",
-      category: "sports",
-      dailyRate: 60,
-      depositOverride: 600,
-      minDays: 2,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: false,
-      ratingAvg: 4.6,
-      ratingCount: 4,
-    },
-    {
-      ownerId: user1.id,
-      title: "Yoga Mat & Equipment Set",
-      description: "Premium yoga mat with blocks, straps, and bolsters. Perfect for home practice or classes.",
-      category: "sports",
-      dailyRate: 25,
-      depositOverride: 200,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 12,
-    },
-    // New listings with 0 ratings for testing
-    {
-      ownerId: user4.id,
-      title: "Canon RF 85mm f/1.2 Lens",
-      description: "Premium portrait lens with incredible bokeh. Perfect for professional portrait photography.",
-      category: "cameras",
-      dailyRate: 160,
-      depositOverride: 2500,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: false,
-      ratingAvg: 0,
-      ratingCount: 0,
-    },
-    {
-      ownerId: user5.id,
-      title: "DJI FPV Drone",
-      description: "First-person view racing drone with goggles. Extreme speed and agility. Includes FPV goggles and controller.",
-      category: "drones",
-      dailyRate: 190,
-      depositOverride: 3200,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 0,
-      ratingCount: 0,
-    },
-    {
-      ownerId: user6.id,
-      title: "Welding Machine Set",
-      description: "Professional MIG welder with safety equipment. Perfect for metalworking projects. Includes helmet and gloves.",
-      category: "tools",
-      dailyRate: 95,
-      depositOverride: 1200,
-      minDays: 3,
-      photos: JSON.stringify(["/drill.png", "/drill.png", "/drill.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: false,
-      ratingAvg: 0,
-      ratingCount: 0,
-    },
-    // Additional mock listings for UX/UI design
-    // Cameras - Budget to Premium
-    {
-      ownerId: user1.id,
-      title: "Sony Alpha 7C Compact Full-Frame",
-      description: "Ultra-compact full-frame mirrorless camera. Perfect for travel photographers who want professional quality in a small package.",
-      category: "cameras",
-      dailyRate: 110,
-      depositOverride: 1600,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 31,
-    },
-    {
-      ownerId: user2.id,
-      title: "Olympus OM-D E-M10 Mark IV",
-      description: "Entry-level mirrorless camera with excellent image stabilization. Great for beginners and travel photography.",
-      category: "cameras",
-      dailyRate: 65,
-      depositOverride: 900,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: true,
-      ratingAvg: 4.4,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user3.id,
-      title: "Panasonic Lumix GH6",
-      description: "Professional video-focused camera with 5.7K recording. Perfect for content creators and videographers.",
-      category: "cameras",
-      dailyRate: 125,
-      depositOverride: 1700,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 14,
-    },
-    {
-      ownerId: user4.id,
-      title: "Leica Q2 Monochrom",
-      description: "Premium black and white camera with exceptional image quality. For serious photographers who appreciate monochrome art.",
-      category: "cameras",
-      dailyRate: 180,
-      depositOverride: 3500,
-      minDays: 3,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 5.0,
-      ratingCount: 3,
-    },
-    // Drones - Various Models
-    {
-      ownerId: user2.id,
-      title: "DJI Mini 2 SE",
-      description: "Affordable compact drone perfect for beginners. Easy to fly with automatic features. Great for travel and social media.",
-      category: "drones",
-      dailyRate: 80,
-      depositOverride: 1200,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Netanya, Israel",
-      lat: 32.3320,
-      lng: 34.8599,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 19,
-    },
-    {
-      ownerId: user3.id,
-      title: "DJI Avata FPV Drone",
-      description: "Cinewhoop-style FPV drone with goggles. Perfect for indoor and outdoor cinematic shots. Includes motion controller.",
-      category: "drones",
-      dailyRate: 160,
-      depositOverride: 2400,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 6,
-    },
-    {
-      ownerId: user5.id,
-      title: "Autel EVO II Pro 6K",
-      description: "Professional drone with 6K video and 1-inch sensor. Excellent for commercial photography and videography.",
-      category: "drones",
-      dailyRate: 220,
-      depositOverride: 3500,
-      minDays: 2,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 4.9,
-      ratingCount: 7,
-    },
-    // Tools - Various Types
-    {
-      ownerId: user1.id,
-      title: "Bosch Professional Router Set",
-      description: "High-precision wood router with multiple bits. Perfect for furniture making and detailed woodwork.",
-      category: "tools",
-      dailyRate: 70,
-      depositOverride: 850,
-      minDays: 2,
-      photos: JSON.stringify(["/drill.png", "/drill.png", "/drill.png"]),
-      locationText: "Petah Tikva, Israel",
-      lat: 32.0889,
-      lng: 34.8564,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user2.id,
-      title: "Makita Cordless Drill Driver Set",
-      description: "18V cordless drill with two batteries and charger. Includes various drill bits and screwdriver attachments.",
-      category: "tools",
-      dailyRate: 40,
-      depositOverride: 450,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Rishon LeZion, Israel",
-      lat: 31.9730,
-      lng: 34.7925,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 22,
-    },
-    {
-      ownerId: user4.id,
-      title: "Festool Track Saw System",
-      description: "Premium track saw for precise straight cuts. Perfect for cabinet making and fine woodworking.",
-      category: "tools",
-      dailyRate: 100,
-      depositOverride: 1400,
-      minDays: 2,
-      photos: JSON.stringify(["/drill.png", "/drill.png", "/drill.png", "/drill.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: false,
-      ratingAvg: 4.9,
-      ratingCount: 5,
-    },
-    {
-      ownerId: user6.id,
-      title: "Dewalt Miter Saw Stand",
-      description: "Professional compound miter saw with stand. Perfect for trim work and framing projects.",
-      category: "tools",
-      dailyRate: 85,
-      depositOverride: 1000,
-      minDays: 2,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Ashdod, Israel",
-      lat: 31.8044,
-      lng: 34.6553,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 10,
-    },
-    // DJ Gear - Various Equipment
-    {
-      ownerId: user1.id,
-      title: "Denon DJ Prime 4 Standalone",
-      description: "4-channel standalone DJ controller with built-in screen. No laptop needed. Perfect for mobile DJs.",
-      category: "djGear",
-      dailyRate: 180,
-      depositOverride: 2500,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 12,
-    },
-    {
-      ownerId: user3.id,
-      title: "Reloop RMX-90 DJ Mixer",
-      description: "Professional 4-channel rotary mixer with high-quality sound. Perfect for house and techno DJs.",
-      category: "djGear",
-      dailyRate: 110,
-      depositOverride: 1300,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 7,
-    },
-    {
-      ownerId: user5.id,
-      title: "Native Instruments Traktor Kontrol S8",
-      description: "Professional DJ controller with touch strips and remix decks. Includes Traktor Pro 3 software.",
-      category: "djGear",
-      dailyRate: 150,
-      depositOverride: 2000,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user6.id,
-      title: "Pioneer DJM-900NXS2 Mixer",
-      description: "Professional 4-channel club mixer with effects. Industry standard for clubs and festivals.",
-      category: "djGear",
-      dailyRate: 200,
-      depositOverride: 3000,
-      minDays: 3,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 5.0,
-      ratingCount: 4,
-    },
-    // Camping - Various Equipment
-    {
-      ownerId: user1.id,
-      title: "Coleman Instant Tent 6-Person",
-      description: "Quick setup tent that assembles in 60 seconds. Perfect for families and groups. Waterproof and wind-resistant.",
-      category: "camping",
-      dailyRate: 65,
-      depositOverride: 850,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Eilat, Israel",
-      lat: 29.5577,
-      lng: 34.9519,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 17,
-    },
-    {
-      ownerId: user2.id,
-      title: "REI Co-op Half Dome 2 Plus Tent",
-      description: "Lightweight backpacking tent for two people. Easy to carry and quick to set up. Perfect for hiking trips.",
-      category: "camping",
-      dailyRate: 55,
-      depositOverride: 700,
-      minDays: 1,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Tiberias, Israel",
-      lat: 32.7959,
-      lng: 35.5308,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 13,
-    },
-    {
-      ownerId: user4.id,
-      title: "Yeti Tundra 65 Cooler",
-      description: "Premium rotomolded cooler that keeps ice for days. Perfect for extended camping trips and outdoor events.",
-      category: "camping",
-      dailyRate: 45,
-      depositOverride: 600,
-      minDays: 1,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png", "/shnork.png"]),
-      locationText: "Netanya, Israel",
-      lat: 32.3320,
-      lng: 34.8599,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 21,
-    },
-    {
-      ownerId: user5.id,
-      title: "Jetboil Flash Cooking System",
-      description: "Ultra-fast portable stove that boils water in 100 seconds. Perfect for backpacking and camping.",
-      category: "camping",
-      dailyRate: 35,
-      depositOverride: 350,
-      minDays: 1,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png"]),
-      locationText: "Zichron Yaakov, Israel",
-      lat: 32.5694,
-      lng: 34.9500,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 15,
-    },
-    {
-      ownerId: user6.id,
-      title: "Big Agnes Air Core Ultra Sleeping Pad",
-      description: "Lightweight inflatable sleeping pad with excellent insulation. Perfect for cold weather camping.",
-      category: "camping",
-      dailyRate: 30,
-      depositOverride: 300,
-      minDays: 1,
-      photos: JSON.stringify(["/ladder.png"]),
-      locationText: "Beer Sheva, Israel",
-      lat: 31.2530,
-      lng: 34.7915,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 11,
-    },
-    // Sports - Various Equipment
-    {
-      ownerId: user1.id,
-      title: "Wilson Pro Staff Tennis Racket",
-      description: "Professional tennis racket used by top players. Perfect for advanced players seeking precision and control.",
-      category: "sports",
-      dailyRate: 40,
-      depositOverride: 400,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png", "/racket.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 16,
-    },
-    {
-      ownerId: user2.id,
-      title: "Babolat Pure Drive Tennis Racket",
-      description: "Powerful tennis racket perfect for aggressive players. Includes vibration dampener and overgrip.",
-      category: "sports",
-      dailyRate: 38,
-      depositOverride: 380,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 9,
-    },
-    {
-      ownerId: user3.id,
-      title: "Cornilleau 500X Table Tennis Table",
-      description: "Professional table tennis table with wheels for easy storage. Perfect for tournaments and serious players.",
-      category: "sports",
-      dailyRate: 50,
-      depositOverride: 500,
-      minDays: 2,
-      photos: JSON.stringify(["/racket.png", "/racket.png", "/racket.png", "/racket.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: false,
-      ratingAvg: 4.7,
-      ratingCount: 6,
-    },
-    {
-      ownerId: user4.id,
-      title: "Spalding NBA Official Basketball",
-      description: "Official size and weight basketball. Perfect for practice and games. Includes pump and needle.",
-      category: "sports",
-      dailyRate: 20,
-      depositOverride: 150,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user5.id,
-      title: "Adidas Telstar Football",
-      description: "Official match football with classic design. Perfect for training and matches. Includes ball pump.",
-      category: "sports",
-      dailyRate: 25,
-      depositOverride: 200,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 12,
-    },
-    {
-      ownerId: user6.id,
-      title: "Nike Air Zoom Vapor Tennis Shoes",
-      description: "Professional tennis shoes with excellent court grip. Size 42-45 available. Perfect for competitive play.",
-      category: "sports",
-      dailyRate: 30,
-      depositOverride: 250,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png", "/racket.png"]),
-      locationText: "Rishon LeZion, Israel",
-      lat: 31.9730,
-      lng: 34.7925,
-      instantBook: true,
-      ratingAvg: 4.4,
-      ratingCount: 5,
-    },
-    // More cameras for variety
-    {
-      ownerId: user1.id,
-      title: "Canon EOS R6 Mark II",
-      description: "Versatile full-frame mirrorless camera with excellent autofocus. Perfect for sports and wildlife photography.",
-      category: "cameras",
-      dailyRate: 135,
-      depositOverride: 2100,
-      minDays: 2,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 18,
-    },
-    {
-      ownerId: user3.id,
-      title: "Fujifilm X100V",
-      description: "Premium compact camera with fixed 23mm lens. Perfect for street photography and travel. Beautiful retro design.",
-      category: "cameras",
-      dailyRate: 100,
-      depositOverride: 1400,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png", "/Cam.png"]),
-      locationText: "Ramat Gan, Israel",
-      lat: 32.0820,
-      lng: 34.8100,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 24,
-    },
-    {
-      ownerId: user5.id,
-      title: "Sony A6400 with 18-135mm Lens",
-      description: "APS-C mirrorless camera with excellent video capabilities. Great for vloggers and content creators.",
-      category: "cameras",
-      dailyRate: 95,
-      depositOverride: 1300,
-      minDays: 1,
-      photos: JSON.stringify(["/Cam.png", "/Cam.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 16,
-    },
-    // More drones
-    {
-      ownerId: user2.id,
-      title: "DJI Air 2S Fly More Combo",
-      description: "Complete drone package with 3 batteries, charging hub, and carrying case. Perfect for extended shooting sessions.",
-      category: "drones",
-      dailyRate: 145,
-      depositOverride: 2300,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 20,
-    },
-    {
-      ownerId: user4.id,
-      title: "DJI Mini 4 Pro",
-      description: "Latest compact drone with 4K HDR video and obstacle sensing. Perfect for travel and social media content.",
-      category: "drones",
-      dailyRate: 115,
-      depositOverride: 1700,
-      minDays: 1,
-      photos: JSON.stringify(["/drone.png", "/drone.png", "/drone.png"]),
-      locationText: "Jerusalem, Israel",
-      lat: 31.7683,
-      lng: 35.2137,
-      instantBook: true,
-      ratingAvg: 4.9,
-      ratingCount: 15,
-    },
-    // More tools
-    {
-      ownerId: user1.id,
-      title: "Milwaukee M18 Fuel Impact Driver",
-      description: "High-torque cordless impact driver with brushless motor. Perfect for construction and automotive work.",
-      category: "tools",
-      dailyRate: 48,
-      depositOverride: 500,
-      minDays: 1,
-      photos: JSON.stringify(["/drill.png", "/drill.png"]),
-      locationText: "Petah Tikva, Israel",
-      lat: 32.0889,
-      lng: 34.8564,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 14,
-    },
-    {
-      ownerId: user3.id,
-      title: "Ryobi One+ 18V Tool Combo Kit",
-      description: "Complete cordless tool set with drill, circular saw, impact driver, and more. Great value for DIY projects.",
-      category: "tools",
-      dailyRate: 65,
-      depositOverride: 750,
-      minDays: 2,
-      photos: JSON.stringify(["/drill.png", "/drill.png", "/drill.png", "/drill.png"]),
-      locationText: "Rishon LeZion, Israel",
-      lat: 31.9730,
-      lng: 34.7925,
-      instantBook: true,
-      ratingAvg: 4.5,
-      ratingCount: 11,
-    },
-    // More DJ gear
-    {
-      ownerId: user2.id,
-      title: "Pioneer DJ XDJ-RX3",
-      description: "All-in-one standalone DJ system with 7-inch touchscreen. No laptop required. Perfect for mobile DJs.",
-      category: "djGear",
-      dailyRate: 170,
-      depositOverride: 2400,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: false,
-      ratingAvg: 4.9,
-      ratingCount: 8,
-    },
-    {
-      ownerId: user4.id,
-      title: "Rane Seventy-Two Mixer",
-      description: "Professional 4-channel mixer with Serato DJ Pro integration. Perfect for scratch DJs and turntablists.",
-      category: "djGear",
-      dailyRate: 120,
-      depositOverride: 1600,
-      minDays: 2,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png"]),
-      locationText: "Haifa, Israel",
-      lat: 32.7940,
-      lng: 34.9896,
-      instantBook: false,
-      ratingAvg: 4.8,
-      ratingCount: 6,
-    },
-    // More camping gear
-    {
-      ownerId: user1.id,
-      title: "MSR Hubba Hubba NX 2-Person Tent",
-      description: "Lightweight backpacking tent for two. Easy setup and excellent weather protection. Perfect for hiking.",
-      category: "camping",
-      dailyRate: 58,
-      depositOverride: 750,
-      minDays: 1,
-      photos: JSON.stringify(["/ladder.png", "/ladder.png", "/ladder.png"]),
-      locationText: "Tiberias, Israel",
-      lat: 32.7959,
-      lng: 35.5308,
-      instantBook: true,
-      ratingAvg: 4.8,
-      ratingCount: 19,
-    },
-    {
-      ownerId: user3.id,
-      title: "Therm-a-Rest NeoAir XTherm Sleeping Pad",
-      description: "Ultra-lightweight sleeping pad with excellent R-value. Perfect for cold weather camping and mountaineering.",
-      category: "camping",
-      dailyRate: 32,
-      depositOverride: 320,
-      minDays: 1,
-      photos: JSON.stringify(["/shnork.png", "/shnork.png"]),
-      locationText: "Eilat, Israel",
-      lat: 29.5577,
-      lng: 34.9519,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 10,
-    },
-    // More sports equipment
-    {
-      ownerId: user1.id,
-      title: "Head Speed Pro Tennis Racket",
-      description: "Professional tennis racket with graphene technology. Perfect for aggressive baseline players.",
-      category: "sports",
-      dailyRate: 42,
-      depositOverride: 420,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png", "/racket.png"]),
-      locationText: "Tel Aviv, Israel",
-      lat: 32.0853,
-      lng: 34.7818,
-      instantBook: true,
-      ratingAvg: 4.7,
-      ratingCount: 13,
-    },
-    {
-      ownerId: user4.id,
-      title: "Wilson Blade 98 Tennis Racket",
-      description: "Control-oriented tennis racket perfect for precision players. Includes vibration dampener.",
-      category: "sports",
-      dailyRate: 39,
-      depositOverride: 390,
-      minDays: 1,
-      photos: JSON.stringify(["/racket.png", "/racket.png"]),
-      locationText: "Herzliya, Israel",
-      lat: 32.1624,
-      lng: 34.8447,
-      instantBook: true,
-      ratingAvg: 4.6,
-      ratingCount: 7,
-    },
-  ];
-
-  // Clear existing listings first
-  await prisma.listing.deleteMany({});
-
-  for (const listing of listings) {
-    await prisma.listing.create({
+    const user = await prisma.user.create({
       data: {
-        ownerId: listing.ownerId,
-        title: listing.title,
-        description: listing.description,
-        category: listing.category,
-        pricePerDay: listing.dailyRate,
-        deposit: listing.depositOverride,
-        photos: listing.photos,
-        locationText: listing.locationText,
-        lat: listing.lat,
-        lng: listing.lng,
-        instantBook: listing.instantBook,
-        ratingAvg: listing.ratingAvg,
-        ratingCount: listing.ratingCount,
-        status: "APPROVED", // Auto-approve seed listings
-      },
+        name: fullName,
+        email: `user${i + 1}@lendly.co.il`,
+        phone: `+972-50-${randomInt(100, 999)}-${randomInt(1000, 9999)}`,
+        avatar: "/person.png",
+        roles: serializeRoles(["USER"]),
+        trustScore,
+        isVerified,
+        createdAt: randomDate(daysAgo(180), daysAgo(1))
+      }
+    });
+
+    users.push({
+      ...user,
+      totalRentalsAsRenter,
+      totalRentalsAsLender,
+      city: city.name,
+      lat: city.lat,
+      lng: city.lng
     });
   }
 
-  // Create admin user (first user is ADMIN)
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@lendly.com" },
-    update: {
-      roles: serializeRoles(["ADMIN"]),
-    },
-    create: {
-      name: "Admin User",
-      email: "admin@lendly.com",
-      phone: "+972-50-000-0000",
-      roles: serializeRoles(["ADMIN"]),
-      trustScore: 100,
-      isVerified: true,
-    },
-  });
+  // Generate Listings (95 listings) with varied rating profiles
+  console.log("📦 Creating listings...");
+  const listings = [];
+  for (let i = 0; i < 95; i++) {
+    const owner = randomElement(users);
+    const category = randomElement(categories);
+    const template = itemTemplates[category];
+    const title = randomElement(template.titles);
+    const description = randomElement(template.descriptions);
+    const [minPrice, maxPrice] = template.priceRange;
+    const pricePerDay = randomInt(minPrice, maxPrice);
+    const city = randomElement(cities);
+    
+    // Create varied rating profiles:
+    // - 30% highly rated (4.5-5.0, 10-30 reviews)
+    // - 40% well-rated (4.0-4.5, 5-15 reviews)
+    // - 20% new/few ratings (3.5-4.5, 0-5 reviews)
+    // - 10% lower rated (3.0-4.0, 3-10 reviews)
+    const ratingProfile = Math.random();
+    let ratingAvg: number;
+    let ratingCount: number;
+    if (ratingProfile < 0.3) {
+      ratingAvg = randomFloat(4.5, 5.0);
+      ratingCount = randomInt(10, 30);
+    } else if (ratingProfile < 0.7) {
+      ratingAvg = randomFloat(4.0, 4.5);
+      ratingCount = randomInt(5, 15);
+    } else if (ratingProfile < 0.9) {
+      ratingAvg = randomFloat(3.5, 4.5);
+      ratingCount = randomInt(0, 5);
+    } else {
+      ratingAvg = randomFloat(3.0, 4.0);
+      ratingCount = randomInt(3, 10);
+    }
+    
+    const status = Math.random() > 0.1 ? ListingStatus.APPROVED : ListingStatus.PAUSED;
+    const instantBook = Math.random() > 0.4;
 
-  // Create default Rules
-  await prisma.rules.upsert({
-    where: { id: "1" },
-    update: {},
-    create: {
-      id: "1",
-      baseDepositPct: 0.1,
-      minDeposit: 100,
-      maxDeposit: 10000,
-      insuranceDaily: 50,
-      incidentMultiplier: 1.5,
-      ownerTrustMultiplier: 1.0,
-      renterTrustMultiplier: 1.0,
-    },
-  });
+    // Calculate deposit (simplified)
+    const deposit = Math.round((pricePerDay * 20 * 0.35) / 10) * 10;
 
-  console.log("Seed data created successfully!");
-  console.log("Admin user created: admin@lendly.com");
+    const listing = await prisma.listing.create({
+      data: {
+        ownerId: owner.id,
+        title,
+        description,
+        category,
+        pricePerDay,
+        deposit,
+        status,
+        photos: JSON.stringify(["/Cam.png", "/drone.png", "/drill.png"]),
+        locationText: city.name,
+        lat: city.lat + randomFloat(-0.05, 0.05),
+        lng: city.lng + randomFloat(-0.05, 0.05),
+        instantBook,
+        ratingAvg,
+        ratingCount,
+        createdAt: randomDate(daysAgo(120), daysAgo(1))
+      }
+    });
+
+    listings.push(listing);
+  }
+
+  // Generate Bookings (65 bookings)
+  console.log("📅 Creating bookings...");
+  const bookings = [];
+  const now = new Date();
+  
+  // Status distribution: 15% reserved, 20% confirmed (includes active), 45% completed, 5% disputed, 10% cancelled, 5% draft
+  const statusWeights: [BookingStatus, number][] = [
+    [BookingStatus.RESERVED, 15],
+    [BookingStatus.CONFIRMED, 20], // Includes "in use" bookings
+    [BookingStatus.COMPLETED, 45],
+    [BookingStatus.CANCELLED, 10],
+    [BookingStatus.DRAFT, 5]
+  ];
+
+  for (let i = 0; i < 65; i++) {
+    const listing = randomElement(listings);
+    const owner = users.find(u => u.id === listing.ownerId)!;
+    let renter: typeof users[0];
+    do {
+      renter = randomElement(users);
+    } while (renter.id === owner.id);
+
+    // Determine status (avoid DISPUTED for now as it requires additional setup)
+    const rand = Math.random() * 100;
+    let status: BookingStatus = BookingStatus.RESERVED;
+    let cumulative = 0;
+    for (const [stat, weight] of statusWeights) {
+      cumulative += weight;
+      if (rand <= cumulative) {
+        status = stat;
+        break;
+      }
+    }
+    
+    // Convert some CANCELLED to DISPUTED (5% of total = ~3 bookings)
+    // We'll track this separately to ensure we get exactly 3 disputed bookings
+    const shouldBeDisputed = status === BookingStatus.CANCELLED && Math.random() < 0.3;
+    if (shouldBeDisputed) {
+      status = BookingStatus.DISPUTED;
+    }
+
+    // Generate dates based on status
+    let startDate: Date;
+    let endDate: Date;
+    const rentalDays = randomInt(1, 7);
+
+    if (status === BookingStatus.COMPLETED) {
+      // Past booking
+      endDate = randomDate(daysAgo(30), daysAgo(1));
+      startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - rentalDays);
+    } else if (status === BookingStatus.CANCELLED) {
+      // Cancelled booking (could be past or future)
+      if (Math.random() > 0.5) {
+        endDate = randomDate(daysAgo(20), daysAgo(1));
+        startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - rentalDays);
+      } else {
+        startDate = randomDate(now, daysFromNow(30));
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + rentalDays);
+      }
+    } else if (status === BookingStatus.CONFIRMED) {
+      // Active or upcoming booking
+      if (Math.random() > 0.5) {
+        // Active (started but not ended)
+        startDate = randomDate(daysAgo(3), now);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + rentalDays);
+      } else {
+        // Upcoming
+        startDate = randomDate(now, daysFromNow(30));
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + rentalDays);
+      }
+    } else {
+      // RESERVED or DRAFT - upcoming
+      startDate = randomDate(now, daysFromNow(60));
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + rentalDays);
+    }
+
+    // Calculate deposit and insurance
+    const { deposit, insuranceFee, insuranceAdded } = calculateDepositAndInsurance(
+      listing,
+      renter,
+      owner,
+      rentalDays
+    );
+
+    const totalPrice = listing.pricePerDay * rentalDays + (insuranceAdded ? insuranceFee : 0);
+
+    const booking = await prisma.booking.create({
+      data: {
+        listingId: listing.id,
+        renterId: renter.id,
+        startDate,
+        endDate,
+        status,
+        deposit,
+        insurance: insuranceAdded,
+        createdAt: randomDate(
+          status === BookingStatus.COMPLETED ? daysAgo(60) : daysAgo(30),
+          daysAgo(1)
+        )
+      }
+    });
+
+    bookings.push({ ...booking, ownerId: owner.id, totalPrice, insuranceFee });
+  }
+
+  // Generate Reviews (40 reviews for completed bookings)
+  console.log("⭐ Creating reviews...");
+  const completedBookings = bookings.filter(b => b.status === BookingStatus.COMPLETED);
+  const reviewsToCreate = Math.min(40, completedBookings.length);
+  const listingRatings: Record<string, { sum: number; count: number }> = {};
+
+  for (let i = 0; i < reviewsToCreate; i++) {
+    const booking = randomElement(completedBookings);
+    const listing = listings.find(l => l.id === booking.listingId)!;
+    const owner = users.find(u => u.id === listing.ownerId)!;
+    const renter = users.find(u => u.id === booking.renterId)!;
+
+    // Create review from renter to owner (this is a review of the listing/owner)
+    const rating = Math.random() > 0.1 ? randomInt(4, 5) : randomInt(3, 4);
+    const comment = randomElement(reviewComments);
+
+    await prisma.review.create({
+      data: {
+        listingId: listing.id,
+        fromUserId: renter.id,
+        toUserId: owner.id,
+        rating,
+        text: comment,
+        createdAt: randomDate(booking.endDate, now)
+      }
+    });
+
+    // Track rating for listing
+    if (!listingRatings[listing.id]) {
+      listingRatings[listing.id] = { sum: 0, count: 0 };
+    }
+    listingRatings[listing.id].sum += rating;
+    listingRatings[listing.id].count += 1;
+
+    // Sometimes create review from owner to renter (30% chance)
+    if (Math.random() > 0.7) {
+      await prisma.review.create({
+        data: {
+          listingId: listing.id,
+          fromUserId: owner.id,
+          toUserId: renter.id,
+          rating: randomInt(4, 5),
+          text: randomElement(reviewComments),
+          createdAt: randomDate(booking.endDate, now)
+        }
+      });
+    }
+  }
+
+  // Update listing ratings based on reviews
+  console.log("📊 Updating listing ratings...");
+  for (const [listingId, ratings] of Object.entries(listingRatings)) {
+    const avgRating = ratings.sum / ratings.count;
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        ratingAvg: Math.round(avgRating * 10) / 10,
+        ratingCount: ratings.count
+      }
+    });
+  }
+
+  // Generate Conversations and Messages (25 conversations)
+  console.log("💬 Creating conversations and messages...");
+  const bookingsForMessages = bookings.filter(
+    b => b.status !== BookingStatus.CANCELLED && b.status !== BookingStatus.DRAFT
+  );
+
+  // Track which bookings already have conversations to avoid duplicates
+  const bookingsWithConversations = new Set<string>();
+
+  for (let i = 0; i < 25 && i < bookingsForMessages.length; i++) {
+    // Get a booking that doesn't already have a conversation
+    let booking = randomElement(bookingsForMessages);
+    let attempts = 0;
+    while (bookingsWithConversations.has(booking.id) && attempts < 50) {
+      booking = randomElement(bookingsForMessages);
+      attempts++;
+    }
+    if (bookingsWithConversations.has(booking.id)) continue;
+    bookingsWithConversations.add(booking.id);
+
+    const listing = listings.find(l => l.id === booking.listingId)!;
+    const owner = users.find(u => u.id === listing.ownerId)!;
+    const renter = users.find(u => u.id === booking.renterId)!;
+
+    // Create thread
+    const thread = await prisma.thread.create({
+      data: {
+        bookingId: booking.id,
+        lastMessageAt: booking.createdAt,
+        createdAt: booking.createdAt
+      }
+    });
+
+    // Generate 3-10 messages with realistic conversation flow
+    const messageCount = randomInt(3, 10);
+    const messages: { senderId: string; text: string; createdAt: Date }[] = [];
+    const rentalDays = Math.ceil((booking.endDate.getTime() - booking.startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    for (let j = 0; j < messageCount; j++) {
+      const isRenter = j % 2 === 0; // Alternate between renter and owner
+      const sender = isRenter ? renter : owner;
+      
+      // Determine conversation phase based on message position and booking status
+      let phase: keyof typeof messageTemplates;
+      if (j === 0) {
+        phase = "initial";
+      } else if (j < messageCount * 0.3) {
+        phase = "pickup";
+      } else if (j < messageCount * 0.7) {
+        phase = booking.status === BookingStatus.COMPLETED ? "during" : "pickup";
+      } else if (j < messageCount * 0.9) {
+        phase = "return";
+      } else {
+        phase = "after";
+      }
+
+      const template = randomElement(messageTemplates[phase]);
+      let text = template
+        .replace("{item}", listing.title)
+        .replace("{days}", rentalDays.toString())
+        .replace("{dates}", `${booking.startDate.toLocaleDateString("he-IL")} - ${booking.endDate.toLocaleDateString("he-IL")}`);
+
+      // Create realistic message timing
+      const messageDate = new Date(booking.createdAt);
+      if (phase === "initial") {
+        messageDate.setHours(messageDate.getHours() - randomInt(1, 24));
+      } else if (phase === "pickup") {
+        messageDate.setHours(messageDate.getHours() + randomInt(1, 48));
+      } else if (phase === "during") {
+        const midPoint = new Date((booking.startDate.getTime() + booking.endDate.getTime()) / 2);
+        messageDate.setTime(midPoint.getTime() + randomInt(-12, 12) * 60 * 60 * 1000);
+      } else if (phase === "return") {
+        messageDate.setTime(booking.endDate.getTime() - randomInt(1, 24) * 60 * 60 * 1000);
+      } else {
+        messageDate.setTime(booking.endDate.getTime() + randomInt(1, 48) * 60 * 60 * 1000);
+      }
+
+      messages.push({
+        senderId: sender.id,
+        text,
+        createdAt: messageDate
+      });
+    }
+
+    // Sort messages by time
+    messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    // Create messages
+    for (const msg of messages) {
+      await prisma.message.create({
+        data: {
+          threadId: thread.id,
+          bookingId: booking.id,
+          fromUserId: msg.senderId,
+          body: msg.text,
+          createdAt: msg.createdAt
+        }
+      });
+    }
+
+    // Update thread last message time
+    const lastMessage = messages[messages.length - 1];
+    await prisma.thread.update({
+      where: { id: thread.id },
+      data: { lastMessageAt: lastMessage.createdAt }
+    });
+  }
+
+  // Generate Disputes for DISPUTED bookings
+  console.log("⚖️ Creating disputes...");
+  const disputedBookings = bookings.filter(b => b.status === BookingStatus.DISPUTED);
+  for (const booking of disputedBookings) {
+    const listing = listings.find(l => l.id === booking.listingId)!;
+    const owner = users.find(u => u.id === listing.ownerId)!;
+    const renter = users.find(u => u.id === booking.renterId)!;
+    
+    // Randomly assign dispute opener (70% renter, 30% owner)
+    const openedBy = Math.random() > 0.3 ? renter : owner;
+    const disputeType = randomElement([DisputeType.DAMAGE, DisputeType.PAYMENT, DisputeType.OTHER]);
+    
+    const disputeDescriptions: Record<DisputeType, string> = {
+      DAMAGE: "נזק קל למוצר במהלך השכרה",
+      PAYMENT: "בעיה בהחזר הפיקדון",
+      OTHER: "בעיה כללית בהשכרה"
+    };
+
+    await prisma.dispute.create({
+      data: {
+        bookingId: booking.id,
+        openedById: openedBy.id,
+        type: disputeType,
+        description: disputeDescriptions[disputeType],
+        status: DisputeStatus.OPEN,
+        claim: Math.round(booking.deposit * randomFloat(0.1, 0.5)),
+        evidence: JSON.stringify({
+          photos: ["/dispute-photo-1.jpg"],
+          description: disputeDescriptions[disputeType]
+        }),
+        createdAt: randomDate(booking.endDate, now)
+      }
+    });
+  }
+
+  console.log("✅ Seed completed successfully!");
+  console.log(`   - ${users.length} users created`);
+  console.log(`   - ${listings.length} listings created`);
+  console.log(`   - ${bookings.length} bookings created`);
+  console.log(`   - ${reviewsToCreate} reviews created`);
+  console.log(`   - 25 conversations with messages created`);
+  console.log(`   - ${disputedBookings.length} disputes created`);
+  
+  // Print summary statistics
+  const statusCounts = bookings.reduce((acc, b) => {
+    acc[b.status] = (acc[b.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  console.log("\n📊 Booking Status Distribution:");
+  Object.entries(statusCounts).forEach(([status, count]) => {
+    console.log(`   - ${status}: ${count}`);
+  });
+  
+  const listingStatusCounts = listings.reduce((acc, l) => {
+    acc[l.status] = (acc[l.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  console.log("\n📊 Listing Status Distribution:");
+  Object.entries(listingStatusCounts).forEach(([status, count]) => {
+    console.log(`   - ${status}: ${count}`);
+  });
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Error seeding database:", e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
-

@@ -3,6 +3,8 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AppBackground } from "@/components/app-background";
+import { BodyGradient } from "@/components/body-gradient";
 import { Header } from "@/components/header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -37,10 +39,16 @@ export default async function LocaleLayout({
       disableTransitionOnChange
     >
       <NextIntlClientProvider messages={messages}>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1 pb-20 overflow-visible">{children}</main>
-          <BottomNav />
+        <BodyGradient />
+        {/* Full-height background wrapper with gradient */}
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#F4FFFD] via-white to-white">
+          {/* App Shell Container - Centered phone-like container on larger screens */}
+          <div className="w-full max-w-[480px] min-h-screen bg-transparent flex flex-col relative mx-auto" dir="rtl">
+            <AppBackground />
+            <Header />
+            <main className="flex-1 pb-24 overflow-y-auto overflow-x-hidden relative w-full">{children}</main>
+            <BottomNav />
+          </div>
         </div>
         <Toaster />
       </NextIntlClientProvider>

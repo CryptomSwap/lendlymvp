@@ -2,6 +2,16 @@
 
 import { prisma } from "@/lib/db";
 
+// Helper function to map Prisma schema fields to application field names
+function mapListingFields(listing: any) {
+  return {
+    ...listing,
+    dailyRate: listing.pricePerDay,
+    depositOverride: listing.deposit,
+    minDays: 1, // Default value since minDays doesn't exist in schema
+  };
+}
+
 // Calculate distance between two coordinates using Haversine formula
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in kilometers
@@ -17,7 +27,7 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export async function getFeaturedListings() {
   try {
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       take: 20, // Get more to sort by combined score
       include: {
         owner: {
@@ -37,7 +47,7 @@ export async function getFeaturedListings() {
       return scoreB - scoreA;
     });
 
-    return listings.slice(0, 6); // Return top 6
+    return listings.slice(0, 6).map(mapListingFields); // Return top 6
   } catch (error) {
     console.error("Error fetching featured listings:", error);
     return [];
@@ -53,7 +63,7 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
     const lng = userLng ?? defaultLng;
 
     // First, try to get listings with coordinates
-    const listingsWithCoords = await prisma.listings.findMany({
+    const listingsWithCoords = await prisma.listing.findMany({
       take: 50, // Get more to filter and sort
       where: {
         lat: { not: null },
@@ -75,7 +85,7 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
       .map((listing) => {
         if (listing.lat && listing.lng) {
           const distance = calculateDistance(lat, lng, listing.lat, listing.lng);
-          return { ...listing, distance };
+          return { ...mapListingFields(listing), distance };
         }
         return null;
       })
@@ -103,7 +113,7 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
 
     // If we don't have enough listings with coordinates, add some without coordinates
     if (listingsWithDistance.length < 6) {
-      const listingsWithoutCoords = await prisma.listings.findMany({
+      const listingsWithoutCoords = await prisma.listing.findMany({
         where: {
           OR: [
             { lat: null },
@@ -129,12 +139,12 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
         return scoreB - scoreA;
       });
 
-      listingsWithDistance.push(...listingsWithoutCoords.map(l => ({ ...l, distance: null })));
+      listingsWithDistance.push(...listingsWithoutCoords.map(l => ({ ...mapListingFields(l), distance: null })));
     }
 
     // If still no listings, get any listings available (fallback)
     if (listingsWithDistance.length === 0) {
-      const allListings = await prisma.listings.findMany({
+      const allListings = await prisma.listing.findMany({
         take: 6,
         include: {
           owner: {
@@ -149,7 +159,7 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
           ratingAvg: "desc",
         },
       });
-      return allListings.map(l => ({ ...l, distance: null }));
+      return allListings.map(l => ({ ...mapListingFields(l), distance: null }));
     }
 
     return listingsWithDistance.slice(0, 6);
@@ -162,7 +172,7 @@ export async function getListingsNearLocation(userLat?: number, userLng?: number
 
 export async function getAllListings() {
   try {
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       take: 20,
       include: {
         owner: {
@@ -181,7 +191,7 @@ export async function getAllListings() {
     });
 
     // Ensure we return a plain array that can be serialized
-    return JSON.parse(JSON.stringify(listings));
+    return JSON.parse(JSON.stringify(listings.map(mapListingFields)));
   } catch (error) {
     console.error("Error fetching all listings:", error);
     return [];
@@ -190,7 +200,7 @@ export async function getAllListings() {
 
 export async function getListingById(id: string) {
   try {
-    const listing = await prisma.listings.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id },
       include: {
         owner: {
@@ -215,7 +225,11 @@ export async function getListingById(id: string) {
       },
     });
 
-    return listing;
+    if (!listing) {
+      return null;
+    }
+
+    return mapListingFields(listing);
   } catch (error) {
     console.error("Error fetching listing:", error);
     return null;
@@ -223,7 +237,7 @@ export async function getListingById(id: string) {
 }
 
 export async function createListing(data: {
-  ownerId: string;
+  ownerId?: string; // Optional - will get from session if not provided
   title: string;
   description: string;
   category: string;
@@ -237,15 +251,35 @@ export async function createListing(data: {
   instantBook: boolean;
 }) {
   try {
-    const listing = await prisma.listings.create({
+    // Get current user from session if ownerId not provided
+    let ownerId = data.ownerId;
+    if (!ownerId) {
+      const { getCurrentUser } = await import("@/lib/auth");
+      const user = await getCurrentUser();
+      if (!user) {
+        throw new Error("User not authenticated. Please sign in to create a listing.");
+      }
+      ownerId = user.id;
+    }
+
+    // Verify owner exists
+    const owner = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { id: true },
+    });
+
+    if (!owner) {
+      throw new Error(`User with ID ${ownerId} not found. Please use a valid user ID.`);
+    }
+
+    const listing = await prisma.listing.create({
       data: {
-        ownerId: data.ownerId,
+        ownerId,
         title: data.title,
         description: data.description,
         category: data.category,
-        dailyRate: data.dailyRate,
-        depositOverride: data.depositOverride,
-        minDays: data.minDays,
+        pricePerDay: data.dailyRate,
+        deposit: data.depositOverride,
         photos: JSON.stringify(data.photos),
         locationText: data.locationText,
         lat: data.lat,
@@ -283,7 +317,7 @@ export async function updateListing(
 ) {
   try {
     // Verify ownership
-    const listing = await prisma.listings.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { ownerId: true },
     });
@@ -296,12 +330,19 @@ export async function updateListing(
       throw new Error("Unauthorized");
     }
 
-    const updateData: any = { ...data };
-    if (data.photos) {
-      updateData.photos = JSON.stringify(data.photos);
-    }
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.dailyRate !== undefined) updateData.pricePerDay = data.dailyRate;
+    if (data.depositOverride !== undefined) updateData.deposit = data.depositOverride;
+    if (data.photos !== undefined) updateData.photos = JSON.stringify(data.photos);
+    if (data.locationText !== undefined) updateData.locationText = data.locationText;
+    if (data.lat !== undefined) updateData.lat = data.lat;
+    if (data.lng !== undefined) updateData.lng = data.lng;
+    if (data.instantBook !== undefined) updateData.instantBook = data.instantBook;
 
-    const updatedListing = await prisma.listings.update({
+    const updatedListing = await prisma.listing.update({
       where: { id: listingId },
       data: updateData,
       include: {
@@ -318,7 +359,7 @@ export async function updateListing(
 
 export async function getListingsByOwner(ownerId: string) {
   try {
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       where: { ownerId },
       include: {
         bookings: {
@@ -340,7 +381,7 @@ export async function getListingsByOwner(ownerId: string) {
       },
     });
 
-    return listings;
+    return listings.map(mapListingFields);
   } catch (error) {
     console.error("Error fetching owner listings:", error);
     return [];
@@ -372,12 +413,12 @@ export async function searchListings(filters: {
     }
 
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      where.dailyRate = {};
+      where.pricePerDay = {};
       if (filters.minPrice !== undefined) {
-        where.dailyRate.gte = filters.minPrice;
+        where.pricePerDay.gte = filters.minPrice;
       }
       if (filters.maxPrice !== undefined) {
-        where.dailyRate.lte = filters.maxPrice;
+        where.pricePerDay.lte = filters.maxPrice;
       }
     }
 
@@ -393,7 +434,7 @@ export async function searchListings(filters: {
       // For now, we'll just return all listings
     }
 
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       where,
       include: {
         owner: {
@@ -408,7 +449,7 @@ export async function searchListings(filters: {
       },
     });
 
-    return listings;
+    return listings.map(mapListingFields);
   } catch (error) {
     console.error("Error searching listings:", error);
     return [];

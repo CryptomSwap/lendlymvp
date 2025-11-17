@@ -22,7 +22,7 @@ export function DashboardTabs() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="w-full px-4 py-6" dir={isRTL ? "rtl" : "ltr"}>
       <h1 className="text-3xl font-bold mb-6">{t("title")}</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

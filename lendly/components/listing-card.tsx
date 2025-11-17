@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ListingPopup as PremiumListingPopup } from "@/components/listing-modal/ListingPopup";
+import { useIsRTL } from "@/lib/utils/rtl";
+import { cn } from "@/lib/utils";
 
 export interface ListingCardProps {
   listing: {
@@ -33,18 +35,15 @@ export interface ListingCardProps {
 export function ListingCardSkeleton() {
   return (
     <Card 
-      className="overflow-hidden w-[170px] flex-shrink-0"
+      className="overflow-hidden w-52 min-w-[208px] flex-shrink-0 rounded-2xl"
       role="status"
       aria-label="Loading listing"
     >
-      <Skeleton className="w-full aspect-[4/3] rounded-t-lg" />
-      <div className="p-2.5 space-y-2">
-        <Skeleton className="h-3.5 w-full" />
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-3 w-12" />
-        </div>
-        <Skeleton className="h-3 w-20" />
+      <Skeleton className="w-full h-[140px]" />
+      <div className="p-3 space-y-1">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-3 w-16" />
       </div>
     </Card>
   );
@@ -52,6 +51,7 @@ export function ListingCardSkeleton() {
 
 export function ListingCard({ listing, showSkeleton = false }: ListingCardProps) {
   const t = useTranslations("common");
+  const isRTL = useIsRTL();
   const photos = JSON.parse(listing.photos || "[]");
   const mainPhoto = photos[0] || "/drill.png";
   const [imageError, setImageError] = useState(false);
@@ -112,7 +112,7 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
   return (
     <>
       <Card
-        className="overflow-hidden w-[170px] flex-shrink-0 cursor-pointer rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.97] select-none"
+        className="overflow-hidden w-52 min-w-[208px] flex-shrink-0 cursor-pointer rounded-2xl shadow-sm hover:shadow-md transition-all select-none bg-white"
         role="article"
         aria-label={`${listing.title}, ${listing.dailyRate} ₪ per day`}
         onClick={handleClick}
@@ -120,15 +120,21 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
-          borderRadius: '12px',
+          transition: 'transform 120ms ease-out, box-shadow 200ms ease-out',
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.97)';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = '';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = '';
         }}
       >
-        {/* Image Container - 4:3 aspect ratio, rounded top */}
+        {/* Image Container - ~140px height */}
         <div 
-          className="relative w-full aspect-[4/3] bg-muted overflow-hidden"
-          style={{
-            borderRadius: '12px 12px 0 0',
-          }}
+          className="relative w-full h-[140px] bg-muted overflow-hidden"
         >
           {!imageError ? (
             <Image
@@ -136,7 +142,7 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
               alt={listing.title}
               fill
               className="object-cover"
-              sizes="170px"
+              sizes="208px"
               loading="lazy"
               onError={() => setImageError(true)}
             />
@@ -146,58 +152,43 @@ export function ListingCard({ listing, showSkeleton = false }: ListingCardProps)
             </div>
           )}
           
-          {/* Badges - Top Right - Consistent position */}
-          <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
+          {/* Badges - Top Right corner */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
             {listing.hasInsurance && (
-              <Badge 
-                variant="default"
-                className="text-[10px] px-1.5 py-0.5 bg-primary/90 backdrop-blur-sm shadow-sm"
-              >
+              <div className="rounded-full bg-[#00B3A0] text-white text-[10px] px-2 py-1 font-medium shadow">
                 {t("insurance")}
-              </Badge>
+              </div>
             )}
             {listing.isInDemand && (
-              <Badge 
-                variant="secondary"
-                className="text-[10px] px-1.5 py-0.5 bg-orange-500/90 backdrop-blur-sm text-white shadow-sm"
-              >
+              <div className="rounded-full bg-orange-500 text-white text-[10px] px-2 py-1 font-medium shadow">
                 {t("inDemand")}
-              </Badge>
+              </div>
             )}
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-2.5 space-y-1.5">
-          {/* Name - 1 line ellipsis */}
+        <div className="p-3 space-y-1">
+          {/* Title - 2 lines max */}
           <h3 
-            className="text-sm font-medium line-clamp-1 text-foreground"
+            className="text-sm font-semibold line-clamp-2 text-gray-900"
             dir="auto"
           >
             {listing.title}
           </h3>
           
-          {/* Price - Bold */}
-          <p className="text-base font-bold text-primary">
-            ₪{listing.dailyRate}
-            <span className="text-xs font-normal text-muted-foreground">/יום</span>
-          </p>
+          {/* Price row */}
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-bold text-[#00B3A0]">
+              ₪{listing.dailyRate}
+            </span>
+            <span className="text-xs text-gray-500">/יום</span>
+          </div>
           
-          {/* Rating and Distance Row */}
-          <div className="flex items-center justify-between gap-2">
-            {/* Rating Stars - Tiny */}
-            <div className="flex items-center gap-0.5">
-              <Star className="h-2.5 w-2.5 fill-warning text-warning" />
-              <span className="text-[10px] font-medium">{listing.ratingAvg.toFixed(1)}</span>
-            </div>
-            
-            {/* Distance */}
-            {listing.distance !== null && listing.distance !== undefined && (
-              <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                <MapPin className="h-2.5 w-2.5" />
-                <span>{listing.distance.toFixed(1)} {t("km")}</span>
-              </div>
-            )}
+          {/* Rating Row */}
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Star className="h-3 w-3 fill-warning text-warning" />
+            <span>{listing.ratingAvg.toFixed(1)}</span>
           </div>
         </div>
       </Card>

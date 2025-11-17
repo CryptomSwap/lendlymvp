@@ -8,6 +8,8 @@ import { useIsRTL } from "@/lib/utils/rtl";
 import { BurgerButton } from "@/components/nav/BurgerButton";
 import { SidePanel } from "@/components/nav/SidePanel";
 import { useMenu } from "@/components/nav/useMenu";
+import { usePathname } from "@/i18n/routing";
+import { useLocale } from "next-intl";
 
 interface SignedInHeaderProps {
   user: {
@@ -23,8 +25,11 @@ interface SignedInHeaderProps {
 export function SignedInHeader({ user }: SignedInHeaderProps) {
   const t = useTranslations("common");
   const isRTL = useIsRTL();
+  const pathname = usePathname();
+  const locale = useLocale();
   const { isOpen, toggle, close } = useMenu();
   const [hasNotifications, setHasNotifications] = useState(false);
+  const isHomePage = pathname === "/" || pathname === `/${locale}` || pathname === `/${locale}/`;
 
   const handleNotificationsClick = () => {
     // TODO: Navigate to notifications page
@@ -34,52 +39,59 @@ export function SignedInHeader({ user }: SignedInHeaderProps) {
   return (
     <>
       <header
-        className="sticky top-0 z-40 w-full border-b border-border/40 bg-white/95 backdrop-blur-sm shadow-sm"
+        className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-sm border-b border-teal-50 shadow-sm"
         dir={isRTL ? "rtl" : "ltr"}
       >
-        <div className="container mx-auto flex items-center justify-between px-4 h-14">
-          {/* Left zone (RTL: right side) - Notifications */}
-          <div className={`flex items-center ${isRTL ? "order-3" : "order-1"}`}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative rounded-full h-9 w-9"
-              onClick={handleNotificationsClick}
-              aria-label={t("notifications") || "Notifications"}
-            >
-              <Bell className="h-5 w-5" />
-              {hasNotifications && (
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-              )}
-            </Button>
-          </div>
+        <div className="w-full flex flex-col px-4 py-3">
+          <div className="w-full flex items-center justify-between">
+            {/* Left zone (RTL: right side) - Notifications */}
+            <div className={`flex items-center ${isRTL ? "order-3" : "order-1"}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-full h-9 w-9"
+                onClick={handleNotificationsClick}
+                aria-label={t("notifications") || "Notifications"}
+              >
+                <Bell className="h-5 w-5" />
+                {hasNotifications && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
+                )}
+              </Button>
+            </div>
 
-          {/* Center zone - Logo */}
-          <div className={`absolute left-1/2 transform -translate-x-1/2 ${isRTL ? "order-2" : "order-2"}`}>
-            <img
-              src="/logo.png"
-              alt="לנדלי"
-              className="h-[58px] w-auto"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (target.src.endsWith(".png")) {
-                  target.src = "/logo.svg";
-                }
-              }}
-            />
-          </div>
+            {/* Center zone - Logo */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img
+                src="/logo.png"
+                alt="לנדלי"
+                className="h-[58px] w-auto"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.endsWith(".png")) {
+                    target.src = "/logo.svg";
+                  }
+                }}
+              />
+            </div>
 
-          {/* Right zone (RTL: left side) - Hamburger Menu */}
-          <div
-            className={`flex items-center ${isRTL ? "order-1" : "order-3"}`}
-          >
-            <BurgerButton
-              isOpen={isOpen}
-              onClick={toggle}
-              ariaLabel={t("menu")}
-              ariaControls="side-panel"
-            />
+            {/* Right zone (RTL: left side) - Hamburger Menu */}
+            <div className={`flex items-center ${isRTL ? "order-1" : "order-3"}`}>
+              <BurgerButton
+                isOpen={isOpen}
+                onClick={toggle}
+                ariaLabel={t("menu")}
+                ariaControls="side-panel"
+              />
+            </div>
           </div>
+          
+          {/* Tagline */}
+          {isHomePage && (
+            <p className="text-sm text-[#009C8D] font-medium text-center mt-1">
+              לא צריך לקנות הכל – פשוט משכירים
+            </p>
+          )}
         </div>
       </header>
       <SidePanel isOpen={isOpen} onClose={close} user={user} />

@@ -19,8 +19,8 @@ export async function getAdminMetrics() {
       bookings,
       completedBookings,
     ] = await Promise.all([
-      prisma.listings.count({ where: { status: "APPROVED" } }),
-      prisma.listings.count({ where: { status: "PENDING" } }),
+      prisma.listing.count({ where: { status: "APPROVED" } }),
+      prisma.listing.count({ where: { status: "PENDING" } }),
       prisma.dispute.count({ where: { status: "OPEN" } }),
       prisma.dispute.count(),
       prisma.booking.findMany({
@@ -35,7 +35,7 @@ export async function getAdminMetrics() {
       const days = Math.ceil(
         (booking.endDate.getTime() - booking.startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      return sum + booking.listing.dailyRate * days;
+      return sum + booking.listing.pricePerDay * days;
     }, 0);
 
     // Calculate conversion rate
@@ -83,7 +83,7 @@ export async function getAdminListings(filters?: {
     }
 
     const [listings, total] = await Promise.all([
-      prisma.listings.findMany({
+      prisma.listing.findMany({
         where,
         include: {
           owner: {
@@ -99,7 +99,7 @@ export async function getAdminListings(filters?: {
         skip,
         take: pageSize,
       }),
-      prisma.listings.count({ where }),
+      prisma.listing.count({ where }),
     ]);
 
     return { listings, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
@@ -118,7 +118,7 @@ export async function updateListingStatus(
   await requireAdmin(user.id);
 
   try {
-    const listing = await prisma.listings.update({
+    const listing = await prisma.listing.update({
       where: { id: listingId },
       data: { status },
     });
@@ -144,7 +144,7 @@ export async function getAdminDisputes() {
               select: {
                 id: true,
                 title: true,
-                dailyRate: true,
+                pricePerDay: true,
                 photos: true,
               },
             },
