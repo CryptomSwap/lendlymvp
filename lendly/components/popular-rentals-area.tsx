@@ -5,24 +5,108 @@ import { useNearbyListings } from "@/lib/hooks/use-nearby-listings";
 import { ListingCard, ListingCardSkeleton } from "@/components/listing-card";
 import { Link } from "@/i18n/routing";
 import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, PanInfo, useMotionValue, animate } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useIsRTL } from "@/lib/utils/rtl";
 import { cn } from "@/lib/utils";
+import { useState, useEffect, useRef } from "react";
 
 export function PopularRentalsArea() {
   const t = useTranslations("common");
   const isRTL = useIsRTL();
   const { listings, loading } = useNearbyListings();
   const ChevronIcon = isRTL ? ChevronRight : ChevronLeft;
+  
+  // Carousel state: tracks the first visible card index (snaps by 2)
+  // IMPORTANT: All hooks must be called before any conditional returns
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardWidth = 182; // w-[182px] - 30% smaller than original 260px (260 * 0.7 = 182)
+  const gap = 16; // gap-4 = 16px
+  const cardStep = cardWidth + gap; // Distance to move one card
+  const dragThreshold = 60; // Minimum drag distance to trigger snap
+  
+  // Motion value for smooth dragging
+  const x = useMotionValue(0);
+  const dragStartX = useRef(0);
+  
+  // Calculate max index (last valid starting position for a pair)
+  const maxIndex = Math.max(0, listings.length - 2);
+  
+  // Update motion value when currentIndex changes (when not dragging)
+  useEffect(() => {
+    if (!isDragging && listings.length > 0) {
+      const targetX = isRTL ? currentIndex * cardStep : -currentIndex * cardStep;
+      animate(x, targetX, {
+        type: "spring",
+        stiffness: 180,
+        damping: 28,
+        mass: 0.8,
+      });
+    }
+  }, [currentIndex, isDragging, isRTL, cardStep, x, listings.length]);
+  
+  // Initialize position on mount
+  useEffect(() => {
+    x.set(0);
+  }, [x]);
+  
+  // Handle drag start - ensure we start from the current position
+  const handleDragStart = () => {
+    setIsDragging(true);
+    // Store the current position when drag starts
+    dragStartX.current = x.get();
+  };
+  
+  // Handle drag end: snap to next/previous pair based on drag distance and direction
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // Immediately stop dragging - carousel stops when mouse/touch is released
+    setIsDragging(false);
+    
+    // Get the final drag position relative to where we started
+    const dragDistance = info.offset.x;
+    const dragVelocity = info.velocity.x;
+    
+    // Determine direction: negative = left (next), positive = right (previous)
+    // For RTL, we need to invert the logic
+    const effectiveDrag = isRTL ? -dragDistance : dragDistance;
+    const effectiveVelocity = isRTL ? -dragVelocity : dragVelocity;
+    
+    let newIndex = currentIndex;
+    
+    // Use velocity if significant, otherwise use distance
+    if (Math.abs(effectiveVelocity) > 400) {
+      // Fast swipe: move in that direction
+      if (effectiveVelocity < 0 && currentIndex < maxIndex) {
+        newIndex = Math.min(currentIndex + 2, maxIndex);
+      } else if (effectiveVelocity > 0 && currentIndex > 0) {
+        newIndex = Math.max(currentIndex - 2, 0);
+      }
+    } else if (Math.abs(effectiveDrag) > dragThreshold) {
+      // Slow drag: check distance threshold
+      if (effectiveDrag < 0 && currentIndex < maxIndex) {
+        newIndex = Math.min(currentIndex + 2, maxIndex);
+      } else if (effectiveDrag > 0 && currentIndex > 0) {
+        newIndex = Math.max(currentIndex - 2, 0);
+      }
+    }
+    
+    // Update index - this will trigger the spring animation to snap to the new position
+    setCurrentIndex(newIndex);
+  };
+  
+  // Calculate drag constraints (relative to current position)
+  // Allow dragging enough to see the elastic effect
+  const maxDragDistance = cardStep * 1.5;
 
   // Loading state - 3 shimmering placeholders
+  // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   if (loading) {
     return (
-      <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+      <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-x-auto overflow-y-visible">
         {/* Header */}
-        <div className="px-3 mb-3">
+        <div className="px-4 mb-2">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -35,8 +119,15 @@ export function PopularRentalsArea() {
             </h2>
           </motion.div>
         </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-3">
-          {[1, 2, 3].map((i) => (
+        {/* FIXED: Changed to overflow-x-auto overflow-y-visible, removed snap, added gap-4 for consistent spacing */}
+        <div 
+          className="flex gap-4 overflow-x-auto overflow-y-visible scrollbar-hide scroll-smooth px-4 w-full mx-auto"
+          style={{
+            scrollBehavior: 'smooth',
+          }}
+        >
+          {[1, 2, 3, 4].map((i) => (
+            // FIXED: Fixed width cards with mb-3 for shadow space, using fullWidth so card fills wrapper
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -45,9 +136,9 @@ export function PopularRentalsArea() {
                 duration: 0.3,
                 delay: i * 0.012, // 12ms stagger
               }}
-              className="flex-shrink-0 snap-start"
+              className="flex-shrink-0 w-[182px] mb-3"
             >
-              <ListingCardSkeleton />
+              <ListingCardSkeleton fullWidth />
             </motion.div>
           ))}
         </div>
@@ -56,11 +147,12 @@ export function PopularRentalsArea() {
   }
 
   // Empty state
+  // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   if (listings.length === 0) {
     return (
-      <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+      <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-x-auto overflow-y-visible">
         {/* Header */}
-        <div className="px-3 mb-3">
+        <div className="px-4 mb-2">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -79,19 +171,18 @@ export function PopularRentalsArea() {
           transition={{ duration: 0.3, delay: 0.012 }}
         >
           <Card 
-            className="max-w-full rounded-2xl p-5 flex flex-col items-center justify-center text-center"
+            className="max-w-full rounded-2xl p-4 flex flex-col items-center justify-center text-center mx-4"
             style={{
               background: 'rgba(15, 162, 161, 0.02)',
               border: '1px solid #E6F3F3',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              padding: '20px',
             }}
           >
-            <MapPin className="w-7 h-7 text-[#0FA2A1] mb-4" strokeWidth={1.75} />
+            <MapPin className="w-7 h-7 text-[#0FA2A1] mb-2" strokeWidth={1.75} />
             <p className="text-[15px] font-medium mb-2 text-[#0F172A]">
               {t("noNearbyListings")}
             </p>
-            <p className="text-[13px] text-[#475569] mb-4">
+            <p className="text-[13px] text-[#475569] mb-2">
               נסה לחפש באזור אחר או עיין בכל ההשכרות הזמינות
             </p>
             <Link href="/search">
@@ -111,11 +202,13 @@ export function PopularRentalsArea() {
     );
   }
 
-  // Listings carousel
+  
+  // Listings carousel - IMPROVED: Bouncy drag-to-snap carousel that moves 2 cards at a time
+  // FIXED: Added overflow-y-visible to prevent vertical clipping, pb-8 for shadow space, mt-6 for spacing from categories
   return (
-    <section className="w-full mt-4 pt-3 pb-4 rounded-3xl bg-white/80 shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-4">
+    <section className="w-full mt-6 pt-2 pb-8 rounded-3xl bg-[#F7FAFA] shadow-[0_8px_20px_rgba(0,0,0,0.03)] mx-auto max-w-[calc(100%-32px)] overflow-y-visible">
       {/* Header */}
-      <div className="px-3 mb-3">
+      <div className="px-4 mb-2">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -143,21 +236,57 @@ export function PopularRentalsArea() {
         </motion.div>
       </div>
       
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-3">
-        {listings.map((listing, index) => (
-          <motion.div
-            key={listing.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ 
-              duration: 0.3,
-              delay: index * 0.012, // 12ms stagger (between 10-15ms)
-            }}
-            className="flex-shrink-0 snap-center"
-          >
-            <ListingCard listing={listing} />
-          </motion.div>
-        ))}
+      {/* Viewport wrapper: overflow-x-hidden to clip horizontal, overflow-y-visible for shadows */}
+      <div className="relative overflow-x-hidden overflow-y-visible px-4 w-full">
+        {/* Draggable carousel container with bouncy spring animation */}
+        <motion.div
+          drag="x"
+          dragElastic={0.15}
+          dragMomentum={false}
+          dragTransition={{ 
+            power: 0.3,
+            timeConstant: 200,
+          }}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          style={{
+            x,
+            willChange: 'transform',
+          }}
+          className="flex gap-4 cursor-grab active:cursor-grabbing select-none"
+          whileDrag={{ cursor: 'grabbing' }}
+          initial={false}
+        >
+          {listings.map((listing, index) => {
+            // Determine if this card is in the visible pair (currentIndex or currentIndex + 1)
+            // The visible pair gets full scale and opacity, others are scaled down
+            const isVisible = index >= currentIndex && index < currentIndex + 2;
+            
+            return (
+              <motion.div
+                key={listing.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{
+                  opacity: isVisible ? 1 : 0.85,
+                  scale: isVisible ? 1 : 0.92,
+                }}
+                transition={{
+                  opacity: { 
+                    duration: 0.3, 
+                    ease: [0.25, 0.46, 0.45, 0.94] 
+                  },
+                  scale: { 
+                    duration: 0.3, 
+                    ease: [0.25, 0.46, 0.45, 0.94] 
+                  },
+                }}
+                className="flex-shrink-0 w-[182px] mb-3"
+              >
+                <ListingCard listing={listing} fullWidth />
+              </motion.div>
+            );
+          })}
+        </motion.div>
       </div>
     </section>
   );

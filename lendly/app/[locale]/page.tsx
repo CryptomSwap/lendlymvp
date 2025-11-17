@@ -132,8 +132,9 @@ export default function HomePage() {
       )}
 
       {/* Popular Rentals in Your Area Section */}
+      {/* FIXED: Increased margin from mt-2 to mt-4 for better spacing from categories */}
       <motion.div 
-        className="mt-5 relative z-10"
+        className="mt-4 relative z-10"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
