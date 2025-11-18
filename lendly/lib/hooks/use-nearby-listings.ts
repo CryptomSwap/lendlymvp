@@ -19,32 +19,6 @@ interface Listing {
 // Mock data for listings with real stock images
 const mockListings: Listing[] = [
   {
-    id: "mock-1",
-    title: "מצלמה מקצועית Canon",
-    dailyRate: 120,
-    ratingAvg: 4.8,
-    ratingCount: 24,
-    photos: JSON.stringify(["https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800&h=600&fit=crop"]),
-    locationText: "תל אביב",
-    distance: 2.5,
-    hasInsurance: true,
-    isInDemand: true,
-    instantBook: true,
-  },
-  {
-    id: "mock-2",
-    title: "מקדחה חשמלית Bosch",
-    dailyRate: 45,
-    ratingAvg: 4.6,
-    ratingCount: 18,
-    photos: JSON.stringify(["https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=600&fit=crop"]),
-    locationText: "רמת גן",
-    distance: 5.2,
-    hasInsurance: false,
-    isInDemand: false,
-    instantBook: true,
-  },
-  {
     id: "mock-3",
     title: "רחפן DJI Mavic",
     dailyRate: 250,

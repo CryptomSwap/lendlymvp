@@ -1,393 +1,306 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/routing";
-import { Plus, Edit, Package, Box, ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
+import { Plus, Package } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTranslations, useLocale } from "next-intl";
-import { useIsRTL } from "@/lib/utils/rtl";
+import { useLocale } from "next-intl";
+import { ListingCard, Listing } from "@/components/lender/ListingCard";
+import { StatusTabs, FilterType } from "@/components/lender/StatusTabs";
+import { MetricsPanel } from "@/components/lender/MetricsPanel";
+import { EmptyState } from "@/components/common/EmptyState";
+import { FloatingActionButton } from "@/components/my-listings/FloatingActionButton";
 
-interface Listing {
-  id: string;
-  title: string;
-  dailyRate: number;
-  status: string;
-  photos: string;
-  ratingAvg: number;
-  ratingCount: number;
-  category?: string;
-  locationText?: string;
-  issueCount?: number;
-  nextBooking?: {
-    id: string;
-    startDate: string;
-    renter: { name: string };
-  };
-}
+// Mock data
+const mockListings: Listing[] = [
+  {
+    id: "1",
+    title: "Canon EOS R6",
+    category: "מצלמות",
+    location: "תל אביב",
+    pricePerDay: 350,
+    rating: { value: 4.8, count: 32 },
+    status: "active",
+    includesInsurance: true,
+    isFeatured: true,
+    views: 312,
+    bookings: 12,
+    revenue: 2340,
+    thumbnailUrl: "/Cam.png",
+  },
+  {
+    id: "2",
+    title: "רחפן DJI Mini 3 Pro",
+    category: "רחפנים",
+    location: "תל אביב",
+    pricePerDay: 280,
+    rating: { value: 4.9, count: 18 },
+    status: "active",
+    includesInsurance: true,
+    views: 245,
+    bookings: 8,
+    revenue: 1680,
+    thumbnailUrl: "/drone.png",
+  },
+  {
+    id: "3",
+    title: "מקדחה אלחוטית Bosch",
+    category: "כלים",
+    location: "רמת גן",
+    pricePerDay: 80,
+    rating: { value: 4.6, count: 15 },
+    status: "active",
+    includesInsurance: false,
+    views: 189,
+    bookings: 15,
+    revenue: 960,
+    thumbnailUrl: "/drill.png",
+  },
+  {
+    id: "4",
+    title: "מיקסר DJ Pioneer DDJ-1000",
+    category: "ציוד DJ",
+    location: "תל אביב",
+    pricePerDay: 320,
+    status: "pending",
+    includesInsurance: true,
+    views: 98,
+    bookings: 0,
+    revenue: 0,
+    thumbnailUrl: "/drone.png",
+  },
+  {
+    id: "5",
+    title: "סולם אלומיניום 3 מטר",
+    category: "כלים",
+    location: "חולון",
+    pricePerDay: 45,
+    rating: { value: 4.7, count: 8 },
+    status: "paused",
+    includesInsurance: false,
+    views: 67,
+    bookings: 5,
+    revenue: 225,
+    thumbnailUrl: "/ladder.png",
+  },
+  {
+    id: "6",
+    title: "מצלמת GoPro Hero 12",
+    category: "מצלמות",
+    location: "תל אביב",
+    pricePerDay: 150,
+    rating: { value: 4.5, count: 22 },
+    status: "issues",
+    includesInsurance: true,
+    hasIssue: true,
+    views: 203,
+    bookings: 10,
+    revenue: 1200,
+    thumbnailUrl: "/Cam.png",
+  },
+];
 
-type FilterType = "all" | "active" | "pending" | "completed";
+// Mock analytics data
+const mockRevenueData = [
+  { month: "נוב'", revenue: 3200 },
+  { month: "דצמ'", revenue: 4100 },
+  { month: "ינו'", revenue: 3800 },
+  { month: "פבר'", revenue: 4500 },
+  { month: "מרץ", revenue: 5200 },
+  { month: "אפר'", revenue: 4980 },
+];
 
-export default function ListingsPage() {
-  const t = useTranslations("listings");
+const mockBookingsData = [
+  { week: "שבוע 1", bookings: 8 },
+  { week: "שבוע 2", bookings: 12 },
+  { week: "שבוע 3", bookings: 15 },
+  { week: "שבוע 4", bookings: 10 },
+  { week: "שבוע 5", bookings: 18 },
+  { week: "שבוע 6", bookings: 14 },
+];
+
+export default function MyListingsPage() {
   const locale = useLocale();
-  const isRTL = useIsRTL();
+  const isRTL = locale === "he";
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   useEffect(() => {
-    loadListings();
+    // Simulate API call
+    setTimeout(() => {
+      setListings(mockListings);
+      setIsLoading(false);
+    }, 800);
   }, []);
 
-  const loadListings = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/dashboard/owner");
-      const data = await res.json();
-      setListings(data.listings || []);
-    } catch (error) {
-      console.error("Failed to load listings:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Calculate filter counts
-  const filterCounts = {
-    active: listings.filter((l) => l.status === "APPROVED").length,
-    pending: listings.filter((l) => l.status === "PENDING").length,
-    completed: 0, // TODO: Calculate based on completed bookings
-  };
+  const filterCounts = useMemo(() => {
+    return {
+      all: listings.length,
+      active: listings.filter((l) => l.status === "active").length,
+      pending: listings.filter((l) => l.status === "pending").length,
+      paused: listings.filter((l) => l.status === "paused").length,
+      issues: listings.filter((l) => l.status === "issues").length,
+    };
+  }, [listings]);
 
   // Filter listings based on active filter
-  const filteredListings = listings.filter((listing) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "active") return listing.status === "APPROVED";
-    if (activeFilter === "pending") return listing.status === "PENDING";
-    if (activeFilter === "completed") return false; // TODO: Implement completed logic
-    return true;
-  });
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return t("status.active");
-      case "PENDING":
-        return t("status.pending");
-      case "PAUSED":
-        return t("status.paused");
+  const filteredListings = useMemo(() => {
+    switch (activeFilter) {
+      case "all":
+        return listings;
+      case "active":
+        return listings.filter((l) => l.status === "active");
+      case "pending":
+        return listings.filter((l) => l.status === "pending");
+      case "paused":
+        return listings.filter((l) => l.status === "paused");
+      case "issues":
+        return listings.filter((l) => l.status === "issues");
       default:
-        return status;
+        return listings;
     }
-  };
+  }, [listings, activeFilter]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800";
-      case "PAUSED":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const activeListings = listings.filter((l) => l.status === "active");
+    const totalRevenue = activeListings.reduce((sum, l) => sum + l.revenue, 0);
+    const totalBookings = activeListings.reduce((sum, l) => sum + l.bookings, 0);
+    const avgOccupancy = activeListings.length > 0
+      ? Math.round((totalBookings / (activeListings.length * 30)) * 100)
+      : 0;
+    const itemsNeedingAttention = listings.filter(
+      (l) => l.status === "issues" || l.hasIssue
+    ).length;
 
+    return {
+      monthlyRevenue: totalRevenue,
+      monthlyBookings: totalBookings,
+      averageOccupancy: avgOccupancy,
+      itemsNeedingAttention,
+    };
+  }, [listings]);
+
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="px-4 pt-5 pb-4 space-y-6 pb-24" dir={isRTL ? "rtl" : "ltr"}>
-        <div className="space-y-4">
-          <div className="h-20 bg-muted rounded-2xl animate-pulse" />
-          <div className="h-12 bg-muted rounded-2xl animate-pulse" />
+      <main
+        className="max-w-[600px] mx-auto px-4 pb-24 min-h-screen"
+        dir={isRTL ? "rtl" : "ltr"}
+        style={{ background: "#F4FBFB" }}
+      >
+        <div className="pt-6 space-y-6">
+          {/* Header skeleton */}
+          <div className="space-y-4">
+            <div className="h-7 bg-gray-200 rounded-lg w-40 animate-pulse" />
+            <div className="h-10 bg-gray-200 rounded-full w-full animate-pulse" />
+          </div>
+          {/* Cards skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-sm p-4 space-y-3"
+              >
+                <div className="flex gap-3">
+                  <div className="w-[90px] h-[90px] bg-gray-200 rounded-xl animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 bg-gray-200 rounded w-3/4 animate-pulse" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-9 bg-gray-200 rounded-xl animate-pulse" />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="pb-24 flex flex-col min-h-screen" dir={isRTL ? "rtl" : "ltr"} style={{ background: '#F7FBFB' }}>
-      {/* Header Block */}
-      <section className="px-4 pt-5 pb-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="space-y-4 text-center"
-        >
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-[#0F172A]">
-              {t("title")}
-            </h1>
-            <p className="text-[15px] text-[#475569]">
-              {t("subtitle")}
-            </p>
-          </div>
+    <main
+      className="max-w-[600px] mx-auto px-4 pb-24 min-h-screen"
+      dir={isRTL ? "rtl" : "ltr"}
+      style={{ background: "#F4FBFB" }}
+    >
+      {/* Sticky Header */}
+      <motion.section
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="sticky top-0 z-10 bg-[#F4FBFB] pt-6 pb-4 space-y-4"
+        style={{ paddingTop: "24px", paddingBottom: "16px" }}
+      >
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-slate-900">ההשכרות שלי</h1>
+          <p className="text-sm text-gray-600">נהל את הפריטים שאתה משכיר</p>
+        </div>
 
-          {/* Primary CTA Button */}
-          <Link href="/listings/new" className="block">
-            <Button
-              className="w-full h-12 rounded-full bg-[#009999] hover:bg-[#036A6A] text-white font-medium shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-              style={{
-                borderRadius: '9999px',
-                height: '48px',
-              }}
-            >
-              <Plus className="h-5 w-5 ml-2 rtl:mr-2 rtl:ml-0" />
-              {t("addListing")}
-            </Button>
-          </Link>
-        </motion.div>
+        <Link href="/listings/new" className="block">
+          <Button
+            className="w-full bg-[#00A39A] hover:bg-[#008B83] text-white rounded-full h-11 text-sm font-semibold shadow-sm active:scale-95 transition-transform"
+          >
+            <Plus className="h-4 w-4 ml-2" />
+            השכר פריט חדש
+          </Button>
+        </Link>
+      </motion.section>
+
+      {/* Metrics Panel */}
+      <section className="mb-6">
+        <MetricsPanel
+          monthlyRevenue={metrics.monthlyRevenue}
+          monthlyBookings={metrics.monthlyBookings}
+          averageOccupancy={metrics.averageOccupancy}
+          itemsNeedingAttention={metrics.itemsNeedingAttention}
+          revenueData={mockRevenueData}
+          bookingsData={mockBookingsData}
+        />
       </section>
 
-      {/* Filter / Stats Row */}
-      {listings.length > 0 && (
-        <section className="px-4 pb-4">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.05 }}
-            className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4"
-          >
-            <button
-              onClick={() => setActiveFilter("all")}
-              className={`px-4 py-2 rounded-full text-[13px] font-medium whitespace-nowrap snap-start transition-all ${
-                activeFilter === "all"
-                  ? "bg-[#E0F6F6] text-[#007C7C] border border-[#009999]"
-                  : "bg-white text-[#475569] border border-[#E6F3F3] hover:text-[#009999]"
-              }`}
-              style={{
-                borderRadius: '9999px',
-              }}
-            >
-              הכל ({listings.length})
-            </button>
-            <button
-              onClick={() => setActiveFilter("active")}
-              className={`px-4 py-2 rounded-full text-[13px] font-medium whitespace-nowrap snap-start transition-all ${
-                activeFilter === "active"
-                  ? "bg-[#E0F6F6] text-[#007C7C] border border-[#009999]"
-                  : "bg-white text-[#475569] border border-[#E6F3F3] hover:text-[#009999]"
-              }`}
-              style={{
-                borderRadius: '9999px',
-              }}
-            >
-              {t("filters.active")} ({filterCounts.active})
-            </button>
-            <button
-              onClick={() => setActiveFilter("pending")}
-              className={`px-4 py-2 rounded-full text-[13px] font-medium whitespace-nowrap snap-start transition-all ${
-                activeFilter === "pending"
-                  ? "bg-[#E0F6F6] text-[#007C7C] border border-[#009999]"
-                  : "bg-white text-[#475569] border border-[#E6F3F3] hover:text-[#009999]"
-              }`}
-              style={{
-                borderRadius: '9999px',
-              }}
-            >
-              {t("filters.pending")} ({filterCounts.pending})
-            </button>
-            <button
-              onClick={() => setActiveFilter("completed")}
-              className={`px-4 py-2 rounded-full text-[13px] font-medium whitespace-nowrap snap-start transition-all ${
-                activeFilter === "completed"
-                  ? "bg-[#E0F6F6] text-[#007C7C] border border-[#009999]"
-                  : "bg-white text-[#475569] border border-[#E6F3F3] hover:text-[#009999]"
-              }`}
-              style={{
-                borderRadius: '9999px',
-              }}
-            >
-              {t("filters.completed")} ({filterCounts.completed})
-            </button>
-          </motion.div>
-        </section>
-      )}
+      {/* Status Filter Tabs */}
+      <section className="mb-4">
+        <StatusTabs
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          counts={filterCounts}
+        />
+      </section>
 
-      {/* Content Section */}
-      <section className="px-4 pb-4 flex-1">
-        {filteredListings.length === 0 && listings.length === 0 ? (
-          /* Empty State Card */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <Card
-              className="w-full rounded-2xl p-6 flex flex-col items-center justify-center text-center"
-              style={{
-                background: 'linear-gradient(135deg, #F5FCFC 0%, #E6F4F4 100%)',
-                border: '1px solid #E6F3F3',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                borderRadius: '16px',
-              }}
-            >
-              {/* Circular Icon Container */}
-              <div
-                className="w-12 h-12 rounded-full bg-[#009999] flex items-center justify-center mb-4"
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '9999px',
-                }}
-              >
-                <Box className="h-6 w-6 text-white" strokeWidth={1.75} />
-              </div>
-
-              {/* Title */}
-              <h2 className="text-[17px] font-bold text-[#0F172A] mb-2">
-                {t("empty.title")}
-              </h2>
-
-              {/* Body Text */}
-              <p className="text-[14px] text-[#475569] mb-6 leading-relaxed max-w-sm">
-                {t("empty.subtitle")}
-              </p>
-
-              {/* Secondary CTA Button */}
-              <Link href="/listings/new" className="w-full">
-                <Button
-                  className="w-full h-11 rounded-full bg-white text-[#009999] border-2 border-[#009999] hover:bg-[#F7FBFB] font-medium shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                  style={{
-                    borderRadius: '9999px',
-                    height: '44px',
-                  }}
-                >
-                  {t("empty.cta")}
-                </Button>
-              </Link>
-            </Card>
-          </motion.div>
+      {/* Listings List */}
+      <section>
+        {listings.length === 0 ? (
+          <EmptyState
+            title="אין לך עדיין השכרות פעילות."
+            subtitle="התחל להעלות פריטים ולהרוויח מהם."
+            ctaLabel="צור את ההשכרה הראשונה שלך"
+            ctaHref="/listings/new"
+          />
         ) : filteredListings.length === 0 ? (
-          /* No listings for active filter */
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-center py-12"
-          >
-            <p className="text-[15px] text-[#475569]">
-              אין השכרות בקטגוריה זו
+          <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+            <Package className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+            <p className="text-sm text-gray-500">
+              אין פריטים בקטגוריה זו כרגע.
             </p>
-          </motion.div>
+          </div>
         ) : (
-          /* Listing Cards */
-          <div className="space-y-3">
-            {filteredListings.map((listing, index) => {
-              const photos = JSON.parse(listing.photos || "[]");
-              const mainPhoto = photos[0] || "/placeholder-listing.jpg";
-
-              return (
-                <motion.div
-                  key={listing.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: index * 0.05,
-                  }}
-                >
-                  <Card
-                    className="overflow-hidden rounded-2xl border shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-white"
-                    style={{
-                      border: '1px solid #E6F3F3',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                      borderRadius: '16px',
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex gap-3">
-                        {/* Thumbnail Image */}
-                        <div
-                          className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-muted"
-                          style={{
-                            borderRadius: '12px',
-                            width: '96px',
-                            height: '96px',
-                          }}
-                        >
-                          <Image
-                            src={mainPhoto}
-                            alt={listing.title}
-                            fill
-                            className="object-cover"
-                            sizes="96px"
-                            loading="lazy"
-                          />
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 space-y-2">
-                          {/* Title */}
-                          <h3 className="text-[15px] font-semibold text-[#0F172A] line-clamp-1">
-                            {listing.title}
-                          </h3>
-
-                          {/* Price and Status */}
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-[16px] font-bold text-[#009999]">
-                              ₪{listing.dailyRate}
-                              <span className="text-[13px] font-normal text-[#475569]">
-                                {" "}ליום
-                              </span>
-                            </p>
-                            <Badge
-                              className={`text-[11px] px-2 py-0.5 ${getStatusColor(listing.status)}`}
-                              style={{
-                                borderRadius: '8px',
-                              }}
-                            >
-                              {getStatusLabel(listing.status)}
-                            </Badge>
-                          </div>
-
-                          {/* Optional: Location and Rating */}
-                          {(listing.locationText || listing.ratingCount > 0) && (
-                            <div className="flex items-center gap-3 text-[12px] text-[#475569]">
-                              {listing.locationText && (
-                                <span className="truncate">{listing.locationText}</span>
-                              )}
-                              {listing.ratingCount > 0 && (
-                                <span className="flex items-center gap-1 whitespace-nowrap">
-                                  ⭐ {listing.ratingAvg.toFixed(1)} ({listing.ratingCount})
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Manage/Edit Link */}
-                          <div className="flex justify-end pt-1">
-                            <Link href={`/listings/${listing.id}/edit`}>
-                              <button className="text-[13px] font-medium text-[#009999] hover:text-[#036A6A] transition-colors flex items-center gap-1">
-                                {t("actions.manage")}
-                                {isRTL ? (
-                                  <ChevronLeft className="h-3.5 w-3.5" />
-                                ) : (
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                )}
-                              </button>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
+          <div className="space-y-4">
+            {filteredListings.map((listing, index) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                index={index}
+              />
+            ))}
           </div>
         )}
       </section>
-    </div>
+
+      {/* Floating Action Button */}
+      <FloatingActionButton />
+    </main>
   );
 }

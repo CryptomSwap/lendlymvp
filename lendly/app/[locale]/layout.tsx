@@ -31,6 +31,9 @@ export default async function LocaleLayout({
   // side is the easiest way to get started
   const messages = await getMessages();
 
+  // Set direction based on locale: Hebrew is RTL, English is LTR
+  const dir = locale === "he" ? "rtl" : "ltr";
+
   return (
     <ThemeProvider
       attribute="class"
@@ -43,10 +46,10 @@ export default async function LocaleLayout({
         {/* Full-height background wrapper with gradient */}
         <div className="min-h-screen w-full bg-gradient-to-b from-[#F4FFFD] via-white to-white">
           {/* App Shell Container - Centered phone-like container on larger screens */}
-          <div className="w-full max-w-[480px] min-h-screen bg-transparent flex flex-col relative mx-auto" dir="rtl">
+          <div className="w-full max-w-[480px] min-h-screen bg-transparent flex flex-col relative mx-auto" dir={dir}>
             <AppBackground />
             <Header />
-            <main className="flex-1 pb-24 overflow-y-auto overflow-x-hidden relative w-full">{children}</main>
+            <main className="flex-1 pb-24 overflow-y-auto overflow-x-hidden relative w-full bg-transparent">{children}</main>
             <BottomNav />
           </div>
         </div>

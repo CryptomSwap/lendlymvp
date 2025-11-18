@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Get user's listings
-    const listings = await prisma.listings.findMany({
+    const listings = await prisma.listing.findMany({
       where: { ownerId: user.id },
       include: {
         bookings: {
@@ -67,6 +67,7 @@ export async function GET() {
         ratingAvg: l.ratingAvg,
         ratingCount: l.ratingCount,
         category: l.category,
+        locationText: l.locationText,
         issueCount: 0, // TODO: Calculate from actual issues when issue tracking is implemented
         nextBooking: l.bookings[0]
           ? {

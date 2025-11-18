@@ -151,7 +151,7 @@ export function PopularRentalsArea() {
             className="flex items-center justify-between"
             dir={isRTL ? "rtl" : "ltr"}
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-base font-semibold" style={{ color: '#19B5A7' }}>
               השכרות באיזורך
             </h2>
           </motion.div>
@@ -197,7 +197,7 @@ export function PopularRentalsArea() {
             className="flex items-center justify-between"
             dir={isRTL ? "rtl" : "ltr"}
           >
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-base font-semibold" style={{ color: '#19B5A7' }}>
               השכרות באיזורך
             </h2>
           </motion.div>
@@ -254,13 +254,13 @@ export function PopularRentalsArea() {
           className="flex items-center justify-between"
           dir={isRTL ? "rtl" : "ltr"}
         >
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-base font-semibold" style={{ color: '#19B5A7' }}>
             השכרות באיזורך
           </h2>
           <Link href="/search">
             <button 
               className={cn(
-                "flex items-center gap-1 text-xs text-[#00A596] font-medium hover:opacity-80 transition-opacity duration-120 active:scale-[0.97]",
+                "flex items-center gap-1 text-xs text-[#19B5A7] font-medium hover:opacity-80 transition-opacity duration-120 active:scale-[0.97]",
                 isRTL && "flex-row-reverse"
               )}
               style={{ 

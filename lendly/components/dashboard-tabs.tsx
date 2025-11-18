@@ -8,6 +8,7 @@ import { OwnerTab } from "./dashboard-owner-tab";
 import { MessagesTab } from "./dashboard-messages-tab";
 import { WalletTab } from "./dashboard-wallet-tab";
 import { SettingsTab } from "./dashboard-settings-tab";
+import { FloatingLenderCTA } from "./floating-lender-cta";
 import { motion } from "framer-motion";
 
 export function DashboardTabs() {
@@ -62,6 +63,9 @@ export function DashboardTabs() {
           </TabsContent>
         </motion.div>
       </Tabs>
+
+      {/* Floating CTA Button - Fixed above bottom nav for dashboard */}
+      <FloatingLenderCTA variant="fixed" />
     </div>
   );
 }

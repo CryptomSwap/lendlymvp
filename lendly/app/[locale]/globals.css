@@ -105,6 +105,14 @@ body {
   padding: 0;
 }
 
+/* Ensure Hebrew text uses Heebo font */
+[dir="rtl"],
+[lang="he"],
+html[dir="rtl"] *,
+html[lang="he"] * {
+  font-family: var(--font-heebo), system-ui, sans-serif;
+}
+
 html.dark body,
 .dark body {
   /* Dark mode background handled by body className */
@@ -329,4 +337,72 @@ html.dark body,
 
 .animate-shake {
   animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Shimmer and sparkle animations for shiny badges */
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes sparkle {
+  0% {
+    background-position: -200% -200%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+
+/* Shimmer effect for category buttons */
+@keyframes shimmer-shine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.category-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.category-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 45%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-shine 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.dark .category-shimmer::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 45%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.2) 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
 }

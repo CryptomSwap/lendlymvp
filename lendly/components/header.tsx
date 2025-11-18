@@ -56,7 +56,7 @@ export function Header() {
         className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-sm border-b border-teal-50 shadow-sm" 
         dir={isRTL ? "rtl" : "ltr"}
       >
-        <div className="w-full flex flex-col px-4 py-3">
+        <div className="w-full flex flex-col px-4 py-2">
           <div className="w-full flex items-center justify-between">
             {/* Left zone (RTL: right side) - Hamburger Menu */}
             <div className={`flex items-center ${isRTL ? "order-3" : "order-1"}`}>
@@ -102,7 +102,7 @@ export function Header() {
           
           {/* Tagline */}
           {isHomePage && (
-            <p className="text-sm text-[#009C8D] font-medium text-center mt-1">
+            <p className="text-sm text-[#009C8D] font-medium text-center mt-2">
               לא צריך לקנות הכל – פשוט משכירים
             </p>
           )}

@@ -29,9 +29,9 @@ export default async function SavedPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2">
           {savedListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <ListingCard key={listing.id} listing={listing} fullWidth />
           ))}
         </div>
       )}

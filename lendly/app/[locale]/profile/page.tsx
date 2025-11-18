@@ -129,9 +129,9 @@ export default async function ProfilePage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               {profile.listingsAsOwner.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard key={listing.id} listing={listing} fullWidth />
               ))}
             </div>
           )}

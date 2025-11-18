@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useIsRTL } from "@/lib/utils/rtl";
 import { BurgerButton } from "@/components/nav/BurgerButton";
 import { SidePanel } from "@/components/nav/SidePanel";
@@ -28,13 +25,7 @@ export function SignedInHeader({ user }: SignedInHeaderProps) {
   const pathname = usePathname();
   const locale = useLocale();
   const { isOpen, toggle, close } = useMenu();
-  const [hasNotifications, setHasNotifications] = useState(false);
   const isHomePage = pathname === "/" || pathname === `/${locale}` || pathname === `/${locale}/`;
-
-  const handleNotificationsClick = () => {
-    // TODO: Navigate to notifications page
-    console.log("Notifications clicked");
-  };
 
   return (
     <>
@@ -44,22 +35,6 @@ export function SignedInHeader({ user }: SignedInHeaderProps) {
       >
         <div className="w-full flex flex-col px-4 py-3">
           <div className="w-full flex items-center justify-between">
-            {/* Left zone (RTL: right side) - Notifications */}
-            <div className={`flex items-center ${isRTL ? "order-3" : "order-1"}`}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative rounded-full h-9 w-9"
-                onClick={handleNotificationsClick}
-                aria-label={t("notifications") || "Notifications"}
-              >
-                <Bell className="h-5 w-5" />
-                {hasNotifications && (
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-                )}
-              </Button>
-            </div>
-
             {/* Center zone - Logo */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <img

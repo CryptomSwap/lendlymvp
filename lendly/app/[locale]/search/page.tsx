@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { ListingCard } from "@/components/listing-card";
+import { LocationInput } from "@/components/location-input";
 import { searchListings } from "@/lib/actions/listings";
 import { CalendarIcon, MapPin, Filter, Search as SearchIcon, ChevronDown, Star } from "lucide-react";
 import { format } from "date-fns";
@@ -91,12 +92,12 @@ export default function SearchPage() {
     <div className="pb-24 flex flex-col" dir={isRTL ? "rtl" : "ltr"} style={{ gap: '16px' }}>
       {/* Header Row */}
       <motion.div
-        className="px-4 pt-4"
+        className="px-4 pt-2"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <h1 className="text-lg font-semibold text-[#0F172A]">
             {t("search")}
           </h1>
@@ -129,21 +130,9 @@ export default function SearchPage() {
             <Filter style={{ width: '18px', height: '18px', strokeWidth: 1.75 }} />
           </button>
           
-          {/* Location pin icon on the right side (RTL) */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-[#00A0A0] opacity-70 pointer-events-none">
-            <MapPin style={{ width: '19px', height: '19px', strokeWidth: 1.75 }} />
-          </div>
-          
-          <Input
-            type="text"
+          <LocationInput 
             value={filters.locationText}
-            onChange={(e) => setFilters({ ...filters, locationText: e.target.value })}
-            placeholder={tSearch("whereAreYouLooking")}
-            className="w-full h-[50px] pr-12 pl-12 rounded-[28px] bg-white border border-[#E6F3F3] shadow-[0_2px_8px_rgba(0,0,0,0.08)] placeholder:text-[#475569] text-[15px] focus:ring-2 focus:ring-[#00A0A0] focus:ring-offset-0 focus:border-[#00A0A0] focus:shadow-[0_4px_12px_rgba(0,160,160,0.2)] transition-all duration-200"
-            style={{ 
-              transition: 'all 200ms ease-out',
-              borderRadius: '28px'
-            }}
+            onChange={(value) => setFilters({ ...filters, locationText: value })}
           />
         </div>
       </motion.div>
@@ -156,8 +145,8 @@ export default function SearchPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <Card
-          className="rounded-2xl p-5"
+          <Card
+          className="rounded-2xl p-4"
           style={{
             background: 'linear-gradient(to bottom, #F7FBFB 0%, #E6F3F3 100%)',
             border: '1px solid #E6F3F3',
@@ -165,14 +154,14 @@ export default function SearchPage() {
           }}
         >
           {/* Filter Card Header */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-[#0F172A]">
               {tSearch("advancedFilters")}
             </h2>
             <ChevronDown className={cn("h-4 w-4 text-[#475569] opacity-60", isRTL && "rotate-180")} />
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             {/* Precise Location (optional) */}
             <div>
               <Label htmlFor="preciseLocation" className="text-sm font-medium text-[#0F172A] mb-2 block">
@@ -189,7 +178,7 @@ export default function SearchPage() {
 
             {/* Price Range */}
             <div>
-              <Label className="text-sm font-medium text-[#0F172A] mb-3 block">
+              <Label className="text-sm font-medium text-[#0F172A] mb-2 block">
                 {tSearch("priceRange")}
               </Label>
               <div className="space-y-2">
@@ -214,7 +203,7 @@ export default function SearchPage() {
 
             {/* Minimum Rating */}
             <div>
-              <Label className="text-sm font-medium text-[#0F172A] mb-3 block">
+              <Label className="text-sm font-medium text-[#0F172A] mb-2 block">
                 {tSearch("minimumRating")}
               </Label>
               <div className="flex items-center gap-2">
@@ -354,17 +343,17 @@ export default function SearchPage() {
 
       {/* Results Section */}
       <motion.div
-        className="px-4"
+        className="px-4 py-2 rounded-3xl bg-[#F7FAFA] mx-auto max-w-[calc(100%-32px)]"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <h2 className="text-[19px] font-semibold text-[#0F172A] mb-4 text-right">
+        <h2 className="text-[19px] font-semibold text-[#0F172A] mb-2 text-right">
           {tSearch("results")}
         </h2>
         
         {listings.length > 0 ? (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
             {listings.map((listing, index) => (
               <motion.div
                 key={listing.id}
@@ -375,6 +364,9 @@ export default function SearchPage() {
                   delay: index * 0.012,
                 }}
                 className="flex-shrink-0 snap-start"
+                style={{
+                  width: 'calc((100% - 8px) / 2)',
+                }}
               >
                 <ListingCard listing={listing} />
               </motion.div>

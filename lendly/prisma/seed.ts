@@ -391,6 +391,21 @@ async function main() {
   await prisma.listing.deleteMany();
   await prisma.user.deleteMany();
 
+  // Create admin user first
+  console.log("👑 Creating admin user...");
+  const admin = await prisma.user.create({
+    data: {
+      name: "מנהל המערכת",
+      email: "admin@lendly.com",
+      phone: "+972-50-000-0000",
+      avatar: "/person.png",
+      roles: serializeRoles(["ADMIN"]),
+      trustScore: 100,
+      isVerified: true,
+      createdAt: daysAgo(365)
+    }
+  });
+
   // Generate Users (55 users)
   console.log("👥 Creating users...");
   const users = [];
@@ -494,6 +509,108 @@ async function main() {
       }
     });
 
+    listings.push(listing);
+  }
+
+  // Create active listings for admin user
+  console.log("📦 Creating admin listings...");
+  const adminListings = [
+    {
+      category: "CAMERA" as const,
+      title: "מצלמת DSLR קנון 5D Mark IV",
+      description: "מצלמה מקצועית עם חיישן full frame, מצוינת לצילומי פורטרטים ונופים. כוללת עדשה 24-70mm.",
+      pricePerDay: 350,
+      photos: ["/Cam.png", "/drone.png"],
+      ratingAvg: 4.8,
+      ratingCount: 24
+    },
+    {
+      category: "DRONE" as const,
+      title: "רחפן DJI Mini 3 Pro",
+      description: "רחפן קומפקטי עם מצלמה 4K, מושלם לצילומי אוויר מקצועיים. כולל 3 סוללות ותיק נשיאה.",
+      pricePerDay: 280,
+      photos: ["/drone.png", "/Cam.png"],
+      ratingAvg: 4.9,
+      ratingCount: 18
+    },
+    {
+      category: "TOOLS" as const,
+      title: "מקדחה אלחוטית Bosch",
+      description: "מקדחה חזקה עם סוללה נטענת, מתאימה לעבודות בית וגינה. כולל ערכת ביטים.",
+      pricePerDay: 80,
+      photos: ["/drill.png", "/ladder.png"],
+      ratingAvg: 4.6,
+      ratingCount: 12
+    },
+    {
+      category: "TOOLS" as const,
+      title: "סולם אלומיניום 3 מטר",
+      description: "סולם בטיחותי וקל משקל, מתקפל בקלות. מושלם לעבודות בית וגינה.",
+      pricePerDay: 45,
+      photos: ["/ladder.png", "/drill.png"],
+      ratingAvg: 4.7,
+      ratingCount: 8
+    },
+    {
+      category: "SPORT" as const,
+      title: "מגלשיים Rollerblade",
+      description: "מגלשיים רולרבלייד נוחות, מתאימות לכל הגילאים. כולל מגנים וקסדה.",
+      pricePerDay: 60,
+      photos: ["/racket.png", "/spin.png"],
+      ratingAvg: 4.5,
+      ratingCount: 15
+    },
+    {
+      category: "DJ_GEAR" as const,
+      title: "מיקסר DJ Pioneer DDJ-1000",
+      description: "מיקסר DJ מקצועי עם 4 ערוצים, מושלם לאירועים. כולל כבלים ומעמד.",
+      pricePerDay: 320,
+      photos: ["/drone.png", "/Cam.png"],
+      ratingAvg: 4.8,
+      ratingCount: 20
+    },
+    {
+      category: "CAMPING" as const,
+      title: "אוהל MSR Hubba Hubba",
+      description: "אוהל קל משקל לשתי אנשים, עמיד למים ונוח להקמה. כולל יתדות וחבלים.",
+      pricePerDay: 90,
+      photos: ["/ladder.png", "/drill.png"],
+      ratingAvg: 4.6,
+      ratingCount: 10
+    },
+    {
+      category: "MUSIC" as const,
+      title: "גיטרה אקוסטית Yamaha",
+      description: "גיטרה אקוסטית איכותית עם צליל עשיר, במצב מעולה. כולל תיק נשיאה.",
+      pricePerDay: 120,
+      photos: ["/racket.png", "/spin.png"],
+      ratingAvg: 4.7,
+      ratingCount: 14
+    }
+  ];
+
+  const adminCity = cities[0]; // Tel Aviv
+  for (const listingData of adminListings) {
+    const deposit = Math.round((listingData.pricePerDay * 20 * 0.35) / 10) * 10;
+    const listing = await prisma.listing.create({
+      data: {
+        ownerId: admin.id,
+        title: listingData.title,
+        description: listingData.description,
+        category: listingData.category,
+        pricePerDay: listingData.pricePerDay,
+        deposit,
+        status: ListingStatus.APPROVED,
+        photos: JSON.stringify(listingData.photos),
+        locationText: adminCity.name,
+        lat: adminCity.lat + randomFloat(-0.02, 0.02),
+        lng: adminCity.lng + randomFloat(-0.02, 0.02),
+        instantBook: true,
+        ratingAvg: listingData.ratingAvg,
+        ratingCount: listingData.ratingCount,
+        createdAt: randomDate(daysAgo(60), daysAgo(1))
+      }
+    });
     listings.push(listing);
   }
 

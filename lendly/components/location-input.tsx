@@ -8,8 +8,16 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { toast } from "sonner";
 
-export function LocationInput() {
-  const [searchQuery, setSearchQuery] = useState("");
+interface LocationInputProps {
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+export function LocationInput({ value: controlledValue, onChange: controlledOnChange }: LocationInputProps = {}) {
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const isControlled = controlledValue !== undefined && controlledOnChange !== undefined;
+  const searchQuery = isControlled ? controlledValue : internalSearchQuery;
+  
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const t = useTranslations("common");
   const locale = useLocale();
@@ -85,7 +93,7 @@ export function LocationInput() {
   return (
     <div className="w-full relative">
       {/* Search bar - rounded-full card */}
-      <div className="w-full bg-white rounded-full shadow-sm px-4 py-3 flex items-center gap-2 focus-within:ring-2 focus-within:ring-[#00B3A0] transition-all duration-200 relative">
+      <div className="w-full bg-white rounded-full shadow-sm px-4 py-2 flex items-center gap-2 focus-within:ring-2 focus-within:ring-[#00B3A0] transition-all duration-200 relative">
         {/* Location icon - left side (RTL) */}
         <button
           type="button"
@@ -107,7 +115,14 @@ export function LocationInput() {
           type="text"
           placeholder={locale === "he" ? "" : t("searchPlaceholder")}
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            if (isControlled) {
+              controlledOnChange!(newValue);
+            } else {
+              setInternalSearchQuery(newValue);
+            }
+          }}
           className="flex-1 h-auto bg-transparent border-0 shadow-none placeholder:text-gray-500 text-[14px] text-center focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-200 relative z-10"
           dir={locale === "he" ? "rtl" : "ltr"}
           style={{ 

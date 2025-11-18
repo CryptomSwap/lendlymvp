@@ -1,7 +1,7 @@
 "use client";
 
 import { Link, usePathname } from "@/i18n/routing";
-import { Home, Search, MessageSquare, Calendar, User } from "lucide-react";
+import { Home, MessageSquare, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +10,9 @@ export function BottomNav() {
   const t = useTranslations("common");
 
   const navItems = [
-    { href: "/messages", icon: MessageSquare, label: t("messages") },
-    { href: "/search", icon: Search, label: t("search") },
-    { href: "/", icon: Home, label: t("home") },
-    { href: "/bookings", icon: Calendar, label: t("bookings") },
-    { href: "/profile", icon: User, label: t("profile") },
+    { href: "/messages", icon: MessageSquare, label: "הודעות" },
+    { href: "/", icon: Home, label: "בית" },
+    { href: "/profile", icon: User, label: "פרופיל" },
   ];
 
   return (

@@ -14,7 +14,7 @@ export function HomeHeroHeader() {
   return (
     <div className="flex flex-col items-center justify-center pt-2 pb-0" dir={isRTL ? "rtl" : "ltr"}>
       {/* Tagline */}
-      <p className="text-sm font-normal text-teal-600 text-center w-full mt-1">
+      <p className="text-sm font-normal text-teal-600 text-center w-full mt-2">
         לא צריך לקנות הכל - פשוט משכירים
       </p>
     </div>
